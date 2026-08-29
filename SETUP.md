@@ -212,7 +212,7 @@ ASAAS_API_KEY
 ASAAS_WEBHOOK_TOKEN
 ```
 
-Use na variável `NEXT_PUBLIC_SITE_URL` a URL principal exata da Netlify, com `https://` e sem barra final.
+No ambiente de teste atual, use `NEXT_PUBLIC_SITE_URL=https://clickcatalogo.netlify.app`, com `https://` e sem barra final.
 
 Marque como segredo:
 

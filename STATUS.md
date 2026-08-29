@@ -389,7 +389,7 @@ O catálogo público suporta pedidos individuais e com vários produtos; autenti
 - foi adicionado `netlify.toml` com build Next.js, Node.js 22 e proteção entre deploys;
 - o requisito local foi alinhado para Node.js 22 ou superior, compatível com a versão atual do cliente Supabase;
 - `SETUP.md` e `CONFIGURACAO_AMBIENTE.md` agora descrevem o novo Supabase e a Netlify;
-- `.env.local` já aponta para o novo Supabase, mas `NEXT_PUBLIC_SITE_URL` ainda aponta para o domínio anterior da Vercel;
+- `.env.local` já aponta para o novo Supabase e para o ambiente de teste `https://clickcatalogo.netlify.app`;
 - o novo deploy da Netlify, os webhooks, o SMTP e o fluxo de Produção ainda não foram validados.
 
 ## Retomada em 29/08/2026

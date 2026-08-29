@@ -46,7 +46,7 @@ ASAAS_API_URL=
 
 ## Netlify
 
-Na Netlify, use `NEXT_PUBLIC_SITE_URL=https://SEU-SITE.netlify.app`, sem barra final. Depois de vincular o domínio, troque para `https://clickcatalogo.com` e faça novo deploy.
+Na Netlify, use `NEXT_PUBLIC_SITE_URL=https://clickcatalogo.netlify.app`, sem barra final. Depois de vincular o domínio, troque para `https://clickcatalogo.com` e faça novo deploy.
 
 Marque `SUPABASE_SERVICE_ROLE_KEY`, `ASAAS_API_KEY` e `ASAAS_WEBHOOK_TOKEN` como valores secretos. Mudanças em variáveis exigem novo build/deploy.
 
