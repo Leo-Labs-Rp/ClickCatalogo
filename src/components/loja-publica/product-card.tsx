@@ -22,7 +22,7 @@ export function ProductCard({ cartQuantity = 0, onAdd, onDecrement, product, sto
   );
 
   return (
-    <article className="group @container/product flex min-h-[22rem] w-full min-w-0 max-w-none self-stretch flex-col overflow-hidden rounded-[var(--radius-card)] border border-[var(--cor-borda)] bg-[var(--cor-superficie)] shadow-[var(--shadow-elevation)]">
+    <article className="group @container/product flex w-full min-w-0 max-w-none self-stretch flex-col overflow-hidden rounded-[var(--radius-card)] border border-[var(--cor-borda)] bg-[var(--cor-superficie)] shadow-[var(--shadow-elevation)]">
       <div className="relative aspect-square w-full overflow-hidden bg-[var(--cor-imagem-fundo)]">
         {product.imagem_url ? (
           <Image
@@ -52,18 +52,16 @@ export function ProductCard({ cartQuantity = 0, onAdd, onDecrement, product, sto
         </p>
 
         {product.descricao ? (
-          <p className="mt-2 hidden line-clamp-2 text-xs leading-5 text-[var(--cor-texto-suave)] @[14rem]/product:block">
+          <p className="mt-2 line-clamp-2 text-[11px] leading-4 text-[var(--cor-texto-suave)] @[12rem]/product:text-xs @[12rem]/product:leading-5">
             {product.descricao}
           </p>
         ) : null}
 
-        <div className="mt-2 min-h-8">
-          {product.variacao_info ? (
-            <p className="line-clamp-2 text-[11px] leading-4 text-[var(--cor-texto-suave)] @[14rem]/product:text-xs">
-              {product.variacao_info}
-            </p>
-          ) : null}
-        </div>
+        {product.variacao_info ? (
+          <p className="mt-2 line-clamp-2 text-[11px] leading-4 text-[var(--cor-texto-suave)] @[12rem]/product:text-xs">
+            {product.variacao_info}
+          </p>
+        ) : null}
 
         <div className="mt-auto grid gap-2 pt-4">
           {onAdd && onDecrement ? (

@@ -146,15 +146,17 @@ export function StoreCatalog({ categories, enableCart = true, storeName, whatsap
               Produtos em destaque
             </h2>
           </div>
-          <span
-            aria-live="polite"
-            className="shrink-0 text-xs text-[var(--cor-texto-suave)]"
-          >
-            {debouncedSearch.trim()
-              ? `${filteredProductCount} de ${totalProducts}`
-              : totalProducts}{" "}
-            {totalProducts === 1 ? "produto" : "produtos"}
-          </span>
+          {showSearch ? (
+            <span
+              aria-live="polite"
+              className="shrink-0 text-xs text-[var(--cor-texto-suave)]"
+            >
+              {debouncedSearch.trim()
+                ? `${filteredProductCount} de ${totalProducts}`
+                : totalProducts}{" "}
+              {totalProducts === 1 ? "produto" : "produtos"}
+            </span>
+          ) : null}
         </div>
 
         {showSearch ? (
@@ -241,22 +243,24 @@ export function StoreCatalog({ categories, enableCart = true, storeName, whatsap
       {enableCart ? (
         <>
           <p aria-live="polite" className="sr-only">{announcement}</p>
-          <Button
-            aria-label={`Abrir carrinho com ${cartItemCount} ${cartItemCount === 1 ? "item" : "itens"}`}
-            className="fixed inset-x-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-40 h-14 justify-between rounded-full px-5 shadow-xl sm:left-auto sm:right-6 sm:w-auto sm:min-w-56"
-            onClick={() => setCartOpen(true)}
-            size="lg"
-            variant="theme"
-          >
-            <span className="flex items-center gap-2">
-              <ShoppingCart aria-hidden="true" />
-              Carrinho
-              <span aria-live="polite" className="grid min-w-6 place-items-center rounded-full bg-[var(--cor-na-acao)] px-1.5 py-0.5 text-xs text-[var(--cor-acao)]">
-                {cartItemCount}
+          {cartItemCount > 0 ? (
+            <Button
+              aria-label={`Abrir carrinho com ${cartItemCount} ${cartItemCount === 1 ? "item" : "itens"}`}
+              className="fixed inset-x-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-40 h-14 justify-between rounded-full px-5 shadow-xl sm:left-auto sm:right-6 sm:w-auto sm:min-w-56"
+              onClick={() => setCartOpen(true)}
+              size="lg"
+              variant="theme"
+            >
+              <span className="flex items-center gap-2">
+                <ShoppingCart aria-hidden="true" />
+                Carrinho
+                <span aria-live="polite" className="grid min-w-6 place-items-center rounded-full bg-[var(--cor-na-acao)] px-1.5 py-0.5 text-xs text-[var(--cor-acao)]">
+                  {cartItemCount}
+                </span>
               </span>
-            </span>
-            <span>{formatCurrency(cartTotal)}</span>
-          </Button>
+              <span>{formatCurrency(cartTotal)}</span>
+            </Button>
+          ) : null}
           <CartPanel
             items={cartItems}
             onClose={() => setCartOpen(false)}
@@ -270,7 +274,7 @@ export function StoreCatalog({ categories, enableCart = true, storeName, whatsap
             storeName={storeName}
             whatsapp={whatsapp}
           />
-          <div aria-hidden="true" className="h-20" />
+          {cartItemCount > 0 ? <div aria-hidden="true" className="h-20" /> : null}
         </>
       ) : null}
     </>

@@ -13,7 +13,7 @@ export type ProductGridProps = {
 export function ProductGrid({ cartQuantities, onAdd, onDecrement, products, storeName, whatsapp }: ProductGridProps) {
   return (
     <div className="@container/product-grid mx-auto w-full max-w-[80rem]">
-      <div className="grid w-full items-stretch gap-3 [grid-template-columns:repeat(auto-fill,minmax(min(100%,9rem),1fr))] @2xl/product-grid:gap-4 @5xl/product-grid:[grid-template-columns:repeat(auto-fill,minmax(min(100%,10rem),1fr))]">
+      <div className="grid w-full grid-cols-2 items-stretch gap-3 @sm/product-grid:grid-cols-3 @xl/product-grid:grid-cols-4 @2xl/product-grid:gap-4 @7xl/product-grid:grid-cols-5">
         {products.map((product) => (
           <ProductCard
             cartQuantity={cartQuantities?.[product.id] ?? 0}
