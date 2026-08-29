@@ -119,24 +119,20 @@ O ClickCatálogo usa o Resend apenas como SMTP do Supabase Auth. A recuperação
 3. No painel DNS que controla `clickcatalogo.com`, crie exatamente os registros SPF, DKIM e MX exibidos pelo Resend. Adicione também o DMARC recomendado.
 4. Volte ao Resend e clique em **Verify DNS Records**. Só avance quando o domínio aparecer como `Verified`.
 5. Desative rastreamento de abertura e de links nesse domínio de autenticação. Links de recuperação são de uso único e não devem ser reescritos por rastreadores.
-6. No Supabase, abra **Integrations → Resend**, conecte a conta já criada e selecione o projeto. Essa integração cria uma chave dedicada e preenche o SMTP do Auth automaticamente.
-7. Confirme em **Authentication → Emails → SMTP Settings**:
-   - remetente: `nao-responda@auth.clickcatalogo.com`;
-   - nome do remetente: `ClickCatálogo`;
-   - SMTP habilitado.
-
-Se a integração guiada não estiver disponível, configure manualmente:
+6. No Resend, abra **API Keys → Create API Key**. Use o nome `Supabase Auth — ClickCatálogo`, permissão somente de envio e restrinja ao domínio `auth.clickcatalogo.com`. Copie a chave quando ela for exibida; o Resend não mostra o valor novamente.
+7. No Supabase, abra **Authentication → Notifications → Email → SMTP Settings** e habilite o SMTP personalizado.
+8. Preencha os campos com os valores abaixo e salve:
 
 ```text
 Host: smtp.resend.com
 Porta: 465
 Usuário: resend
-Senha: uma API Key criada no Resend
+Senha: API Key criada no passo anterior
 Remetente: nao-responda@auth.clickcatalogo.com
 Nome: ClickCatálogo
 ```
 
-Não registre essa API Key no Git. Na configuração manual ela fica somente no campo de senha SMTP do Supabase.
+Não registre essa API Key no Git. Ela fica somente no campo de senha SMTP do Supabase. Se a integração guiada Resend aparecer no seu painel no futuro, ela será apenas uma alternativa a esta configuração manual e não será necessária.
 
 Em **Authentication → Email Templates → Reset password**, mantenha o link de confirmação fornecido pelo Supabase e use um texto curto, sem publicidade. Depois envie uma recuperação real para um Gmail e um Outlook e confirme recebimento, abertura do callback, troca da senha e novo login.
 
