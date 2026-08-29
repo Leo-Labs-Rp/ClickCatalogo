@@ -70,7 +70,7 @@ export async function saveCategoryAction(input: { id?: string; nome: string }): 
   }
 }
 
-export async function deleteCategoryAction(id: string, confirmed = false): Promise<ActionResult<{ requiresConfirmation?: boolean }>> {
+export async function deleteCategoryAction(id: string): Promise<ActionResult> {
   if (!z.uuid().safeParse(id).success) return { error: "Categoria inválida.", ok: false };
 
   try {
@@ -81,12 +81,11 @@ export async function deleteCategoryAction(id: string, confirmed = false): Promi
     if (countError) throw countError;
 
     if ((count ?? 0) > 0) {
-      if (!confirmed) return { data: { requiresConfirmation: true }, ok: true };
-      const { data: productImages } = await supabase.from("products").select("imagem_url").eq("tenant_id", tenant.id).eq("category_id", id);
-      const { error: productError } = await supabase.from("products").delete().eq("tenant_id", tenant.id).eq("category_id", id);
-      if (productError) throw productError;
-      const paths = (productImages ?? []).map((product) => storagePathFromUrl(product.imagem_url)).filter((path): path is string => Boolean(path));
-      if (paths.length) await supabase.storage.from("produtos").remove(paths);
+      const label = count === 1 ? "1 produto vinculado" : `${count} produtos vinculados`;
+      return {
+        error: `Esta categoria possui ${label}. Crie outra categoria e mova os produtos para ela, ou exclua os produtos, antes de tentar novamente.`,
+        ok: false,
+      };
     }
 
     const { error } = await supabase.from("categories").delete().eq("tenant_id", tenant.id).eq("id", id);
@@ -98,13 +97,6 @@ export async function deleteCategoryAction(id: string, confirmed = false): Promi
   } catch (error) {
     return actionError(error, "Não foi possível excluir a categoria.");
   }
-}
-
-function storagePathFromUrl(url: string | null) {
-  if (!url) return null;
-  const marker = "/storage/v1/object/public/produtos/";
-  const index = url.indexOf(marker);
-  return index >= 0 ? decodeURIComponent(url.slice(index + marker.length)) : null;
 }
 
 export async function reorderCategoriesAction(ids: string[]): Promise<ActionResult> {

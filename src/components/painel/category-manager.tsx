@@ -44,13 +44,18 @@ export function CategoryManager({ initialCategories }: { initialCategories: Cate
   }
 
   function remove(category: CategoryItem) {
+    if (category.productCount > 0) {
+      const label = category.productCount === 1
+        ? "1 produto vinculado"
+        : `${category.productCount} produtos vinculados`;
+      setError(`A categoria “${category.nome}” possui ${label}. Crie outra categoria e mova os produtos para ela, ou exclua os produtos, antes de excluir a categoria.`);
+      return;
+    }
+
+    if (!window.confirm(`Excluir a categoria “${category.nome}”?`)) return;
+
     startTransition(async () => {
-      let result = await deleteCategoryAction(category.id);
-      if (result.ok && result.data?.requiresConfirmation) {
-        const confirmed = window.confirm(`A categoria “${category.nome}” tem ${category.productCount} produto(s). Excluir a categoria também excluirá esses produtos. Deseja continuar?`);
-        if (!confirmed) return;
-        result = await deleteCategoryAction(category.id, true);
-      }
+      const result = await deleteCategoryAction(category.id);
       if (!result.ok) return setError(result.error);
       setCategories((current) => current.filter((item) => item.id !== category.id));
       setError(null);
