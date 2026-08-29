@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, CheckCircle2, Clock3, Copy, ExternalLink, ShoppingBag } from "lucide-react";
+import { Check, CheckCircle2, Clock3, Copy, ExternalLink, RotateCw, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -14,6 +14,7 @@ type StatusResponse = { accessConfigured?: boolean; configured?: boolean; ready?
 export function SuccessStatus({ reference }: { reference: string | null }) {
   const [status, setStatus] = useState<StatusResponse>({ status: "pendente" });
   const [copied, setCopied] = useState<string | null>(null);
+  const [checkCycle, setCheckCycle] = useState(0);
   const [timedOut, setTimedOut] = useState(false);
 
   useEffect(() => {
@@ -23,7 +24,10 @@ export function SuccessStatus({ reference }: { reference: string | null }) {
     async function check() {
       attempts += 1;
       try {
-        const response = await fetch(`/api/cadastro/status?ref=${encodeURIComponent(reference!)}`, { cache: "no-store" });
+        const response = await fetch(`/api/cadastro/status?ref=${encodeURIComponent(reference!)}`, {
+          cache: "no-store",
+          signal: AbortSignal.timeout(8_000),
+        });
         const result = await response.json() as StatusResponse;
         setStatus(result);
         if (result.ready || result.status === "cancelado" || result.status === "expirado" || result.configured === false) return;
@@ -33,7 +37,7 @@ export function SuccessStatus({ reference }: { reference: string | null }) {
     }
     void check();
     return () => window.clearTimeout(timer);
-  }, [reference]);
+  }, [checkCycle, reference]);
 
   async function copy(value: string, key: string) {
     await navigator.clipboard.writeText(value);
@@ -46,7 +50,7 @@ export function SuccessStatus({ reference }: { reference: string | null }) {
   if (status.status === "cancelado" || status.status === "expirado") return <Alert description="Você pode reiniciar o cadastro e gerar uma nova sessão segura de pagamento." title="Este checkout foi cancelado ou expirou" variant="danger" />;
 
   if (!status.ready || !status.slug) {
-    return <Card className="p-7 text-center sm:p-9"><span className="mx-auto grid size-14 place-items-center rounded-full bg-amber-50 text-amber-700"><Clock3 aria-hidden="true" className="size-6" /></span><h1 className="mt-5 text-2xl font-bold">Estamos preparando sua loja</h1><p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--app-foreground-muted)]">O checkout foi concluído. A confirmação do Asaas pode levar alguns instantes; esta página atualiza automaticamente.</p><div className="mx-auto mt-6 h-1.5 w-48 overflow-hidden rounded-full bg-[var(--app-surface-muted)]"><div className="h-full w-2/3 animate-pulse rounded-full bg-brand-600" /></div>{timedOut ? <Alert className="mt-6 text-left" description="Não faça outro pagamento. Guarde este endereço e atualize a página em alguns instantes." title="A confirmação está levando mais tempo" variant="warning" /> : null}</Card>;
+    return <Card className="p-7 text-center sm:p-9"><span className="mx-auto grid size-14 place-items-center rounded-full bg-amber-50 text-amber-700"><Clock3 aria-hidden="true" className="size-6" /></span><h1 className="mt-5 text-2xl font-bold">Estamos preparando sua loja</h1><p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--app-foreground-muted)]">O checkout foi concluído. A confirmação do Asaas pode levar alguns instantes; esta página atualiza automaticamente.</p><div className="mx-auto mt-6 h-1.5 w-48 overflow-hidden rounded-full bg-[var(--app-surface-muted)]"><div className="h-full w-2/3 animate-pulse rounded-full bg-brand-600" /></div>{timedOut ? <div className="mt-6 grid gap-4"><Alert className="text-left" description="Não faça outro pagamento. Guarde o endereço desta página: ele permite consultar novamente sem depender de atendimento." title="A confirmação está levando mais tempo" variant="warning" /><Button className="mx-auto" onClick={() => { setTimedOut(false); setCheckCycle((cycle) => cycle + 1); }} variant="secondary"><RotateCw aria-hidden="true" />Verificar novamente</Button></div> : null}</Card>;
   }
 
   const origin = typeof window === "undefined" ? "" : window.location.origin;

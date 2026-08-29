@@ -3,9 +3,10 @@ import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { CATALOGOJA_MONTHLY_PLAN } from "@/lib/billing/plan";
+import { CLICKCATALOGO_MONTHLY_PLAN } from "@/lib/billing/plan";
 import { requireAsaasWebhookToken } from "@/lib/env/server";
 import { isSupabaseConfigured } from "@/lib/env/public";
+import { enforceRateLimit, PUBLIC_API_RATE_LIMITS } from "@/lib/security/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database, Json } from "@/types/database";
 
@@ -68,6 +69,9 @@ function validToken(received: string | null) {
 }
 
 export async function POST(request: Request) {
+  const rateLimitResponse = enforceRateLimit(request, PUBLIC_API_RATE_LIMITS.webhook);
+  if (rateLimitResponse) return rateLimitResponse;
+
   if (!validToken(request.headers.get("asaas-access-token"))) return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
 
   if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -87,7 +91,12 @@ export async function POST(request: Request) {
     const { data: existing } = await admin.from("asaas_webhook_events").select("attempts,processed_at,processing_error,received_at").eq("event_id", event.id).single();
     if (existing?.processed_at) return NextResponse.json({ received: true, repeated: true });
     const stillProcessing = existing && !existing.processing_error && Date.now() - new Date(existing.received_at).getTime() < 5 * 60 * 1000;
-    if (stillProcessing) return NextResponse.json({ processing: true, received: true, repeated: true });
+    if (stillProcessing) {
+      return NextResponse.json(
+        { error: "Evento ainda em processamento; tente novamente." },
+        { status: 409 },
+      );
+    }
     await admin.from("asaas_webhook_events").update({ attempts: (existing?.attempts ?? 1) + 1, processing_error: null }).eq("event_id", event.id);
   }
 
@@ -211,7 +220,7 @@ async function provisionTenant(intent: SignupIntent, event: WebhookEvent) {
   const subscriptionId = subscriptionIdFrom(event) ?? intent.asaas_subscription_id;
   const nextDueDate = nextDueDateFrom(event);
   const portalUrl = textValue(event.payment, "invoiceUrl");
-  const value = numberValue(event.payment, "value") ?? numberValue(event.subscription, "value") ?? CATALOGOJA_MONTHLY_PLAN.value;
+  const value = numberValue(event.payment, "value") ?? numberValue(event.subscription, "value") ?? CLICKCATALOGO_MONTHLY_PLAN.value;
 
   let tenantId = intent.provisioned_tenant_id;
   let existingSubscription = await findExistingSubscription(event);

@@ -34,7 +34,7 @@ export function DesignSystemShowcase() {
             <span className="grid size-9 place-items-center rounded-lg bg-brand-900 text-[var(--brand-accent)]">
               <Layers3 aria-hidden="true" className="size-5" />
             </span>
-            <span className="font-bold tracking-tight text-brand-900">CatalogoJá</span>
+            <span className="font-bold tracking-tight text-brand-900">ClickCatálogo</span>
           </div>
           <Badge variant="success">Design system · Etapa 2</Badge>
         </div>

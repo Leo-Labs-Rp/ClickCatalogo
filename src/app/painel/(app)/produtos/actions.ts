@@ -16,7 +16,13 @@ const productSchema = z.object({
   descricao: z.string().trim().max(1000).nullable(),
   id: z.uuid().optional(),
   nome: z.string().trim().min(1, "Digite o nome do produto.").max(120),
-  preco: z.number().min(0.01, "O preço deve ser maior que zero.").max(99_999_999),
+  preco: z.number()
+    .min(0.01, "O preço deve ser maior que zero.")
+    .max(99_999_999)
+    .refine(
+      (value) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-8,
+      "Use no máximo duas casas decimais no preço.",
+    ),
   variacaoInfo: z.string().trim().max(300).nullable(),
 });
 

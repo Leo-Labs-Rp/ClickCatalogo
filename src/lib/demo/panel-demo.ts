@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import type { PublicCatalog } from "@/types/catalog";
 import type { Database } from "@/types/database";
 
-export const DEMO_EMAIL = "demo@catalogoja.local";
+export const DEMO_EMAIL = "demo@clickcatalogo.local";
 export const DEMO_COOKIE_NAME = "catalogoja-demo";
 export const DEMO_USER_ID = "00000000-0000-4000-8000-000000000001";
 

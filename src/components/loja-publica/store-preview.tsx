@@ -41,6 +41,7 @@ export function StorePreview({
       />
       <StoreCatalog
         categories={categoriesWithProducts}
+        enableCart={!framed}
         storeName={catalog.nome_loja}
         whatsapp={catalog.whatsapp}
       />

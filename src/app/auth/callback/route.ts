@@ -24,5 +24,9 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.redirect(new URL("/painel?erro=link-invalido", url.origin));
+  const failurePath = next === "/painel/nova-senha"
+    ? "/painel/recuperar-senha?erro=link-invalido"
+    : "/painel?erro=link-invalido";
+
+  return NextResponse.redirect(new URL(failurePath, url.origin));
 }

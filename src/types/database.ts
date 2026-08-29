@@ -276,6 +276,10 @@ export type Database = {
     };
     Views: { [_ in never]: never };
     Functions: {
+      expire_stale_signup_intents: {
+        Args: Record<PropertyKey, never>;
+        Returns: number;
+      };
       get_public_catalog: {
         Args: { p_slug: string };
         Returns: Json;

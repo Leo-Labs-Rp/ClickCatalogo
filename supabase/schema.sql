@@ -1,4 +1,4 @@
--- CatalogoJá — schema consolidado para um projeto Supabase vazio.
+-- ClickCatálogo — schema consolidado para um projeto Supabase vazio.
 -- Execute este arquivo uma única vez no SQL Editor.
 -- Não execute este arquivo depois das migrations individuais.
 
@@ -199,6 +199,30 @@ create index signup_intents_asaas_customer_idx
 create index signup_intents_pending_expiry_idx
   on public.signup_intents (expires_at)
   where status = 'pendente';
+
+-- Libera slugs de checkouts pendentes que expiraram mesmo quando o webhook
+-- CHECKOUT_EXPIRED não chegou. A função só pode ser chamada pela service role.
+create or replace function public.expire_stale_signup_intents()
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  expired_count integer;
+begin
+  update public.signup_intents
+  set status = 'expirado'
+  where status = 'pendente'
+    and expires_at <= now();
+
+  get diagnostics expired_count = row_count;
+  return expired_count;
+end;
+$$;
+
+revoke all on function public.expire_stale_signup_intents() from public, anon, authenticated;
+grant execute on function public.expire_stale_signup_intents() to service_role;
 
 create or replace function public.set_updated_at()
 returns trigger

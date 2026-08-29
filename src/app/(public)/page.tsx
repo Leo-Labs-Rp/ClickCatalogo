@@ -123,7 +123,7 @@ export default function HomePage() {
       <section className="px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <SectionTitle
-            description="Você cuida dos produtos; o CatalogoJá deixa a loja organizada e leva cada pedido até o seu WhatsApp."
+            description="Você cuida dos produtos; o ClickCatálogo deixa a loja organizada e leva cada pedido até o seu WhatsApp."
             eyebrow="Como funciona"
             title="Do cadastro ao primeiro pedido em três passos"
           />
@@ -228,7 +228,7 @@ export default function HomePage() {
           </nav>
         </div>
         <div className="mx-auto flex max-w-7xl flex-col gap-2 border-t border-white/10 py-5 text-xs text-white/65 sm:flex-row sm:items-center sm:justify-between">
-          <p>© {new Date().getFullYear()} CatalogoJá</p>
+          <p>© {new Date().getFullYear()} ClickCatálogo</p>
           <p>Feito para pequenos negócios venderem com mais clareza.</p>
         </div>
       </footer>
@@ -245,7 +245,7 @@ function BrandLink({ inverse = false }: { inverse?: boolean }) {
       <span className={`grid size-8 place-items-center rounded-lg ${inverse ? "bg-white/10" : "bg-brand-900 text-white"}`}>
         <ShoppingBag aria-hidden="true" className="size-4" />
       </span>
-      CatalogoJá
+      ClickCatálogo
     </Link>
   );
 }

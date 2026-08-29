@@ -31,9 +31,12 @@ export default async function LoginPage() {
         <Card className="overflow-hidden">
           <div className="h-1.5 bg-brand-700" />
           <CardHeader>
-            <span className="mb-3 grid size-11 place-items-center rounded-xl bg-brand-100 text-brand-700">
-              <ShoppingBag aria-hidden="true" className="size-5" />
-            </span>
+            <div className="mb-3 flex items-center gap-2 font-bold tracking-tight text-brand-900">
+              <span className="grid size-11 place-items-center rounded-xl bg-brand-100 text-brand-700">
+                <ShoppingBag aria-hidden="true" className="size-5" />
+              </span>
+              ClickCatálogo
+            </div>
             <CardTitle className="text-2xl">Seu catálogo, num clique</CardTitle>
             <CardDescription>Entre para editar sua loja, categorias e produtos.</CardDescription>
           </CardHeader>

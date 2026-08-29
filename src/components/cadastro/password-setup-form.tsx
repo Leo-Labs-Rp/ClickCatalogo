@@ -1,11 +1,13 @@
 "use client";
 
 import { KeyRound, LoaderCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
+import { PasswordFields } from "@/components/painel/password-fields";
+import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
 
@@ -15,6 +17,7 @@ type PasswordSetupFormProps = {
 };
 
 export function PasswordSetupForm({ onConfigured, reference }: PasswordSetupFormProps) {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
@@ -58,7 +61,8 @@ export function PasswordSetupForm({ onConfigured, reference }: PasswordSetupForm
         throw new Error("Acesso configurado. Entre pelo painel com seus dados.");
       }
 
-      window.location.assign("/painel/loja");
+      router.replace("/painel/loja");
+      router.refresh();
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Não foi possível criar a senha.");
       setSubmitting(false);
@@ -93,35 +97,14 @@ export function PasswordSetupForm({ onConfigured, reference }: PasswordSetupForm
         />
       </Field>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field>
-          <FieldLabel htmlFor="setup-password">Senha</FieldLabel>
-          <Input
-            autoComplete="new-password"
-            disabled={submitting}
-            id="setup-password"
-            minLength={8}
-            onChange={(event) => setPassword(event.target.value)}
-            required
-            type="password"
-            value={password}
-          />
-          <FieldDescription>Mínimo de 8 caracteres.</FieldDescription>
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="setup-confirmation">Confirmar senha</FieldLabel>
-          <Input
-            autoComplete="new-password"
-            disabled={submitting}
-            id="setup-confirmation"
-            minLength={8}
-            onChange={(event) => setConfirmation(event.target.value)}
-            required
-            type="password"
-            value={confirmation}
-          />
-        </Field>
-      </div>
+      <PasswordFields
+        confirmation={confirmation}
+        disabled={submitting}
+        idPrefix="setup"
+        onConfirmationChange={setConfirmation}
+        onPasswordChange={setPassword}
+        password={password}
+      />
 
       <Button disabled={submitting} size="lg" type="submit">
         {submitting ? <LoaderCircle aria-hidden="true" className="animate-spin" /> : <KeyRound aria-hidden="true" />}

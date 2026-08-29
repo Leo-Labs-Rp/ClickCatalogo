@@ -132,7 +132,7 @@ export function CategoryManager({ initialCategories }: { initialCategories: Cate
               onDrop={() => drop(category.id)}
             >
               <GripVertical aria-hidden="true" className="size-5 shrink-0 cursor-grab text-[var(--app-foreground-muted)]" />
-              <div className="min-w-0 flex-1"><p className="truncate font-semibold">{category.nome}</p><p className="text-xs text-[var(--app-foreground-muted)]">{category.productCount} {category.productCount === 1 ? "produto" : "produtos"}</p></div>
+              <div className="min-w-0 flex-1"><p className="truncate font-semibold">{category.nome}</p></div>
               <Button aria-label={`Mover ${category.nome} para cima`} disabled={isPending || index === 0} onClick={() => move(category.id, -1)} size="icon" variant="ghost"><ArrowUp aria-hidden="true" /></Button>
               <Button aria-label={`Mover ${category.nome} para baixo`} disabled={isPending || index === categories.length - 1} onClick={() => move(category.id, 1)} size="icon" variant="ghost"><ArrowDown aria-hidden="true" /></Button>
               <Button aria-label={`Editar ${category.nome}`} onClick={() => { setCreating(false); setEditing(category); }} size="icon" variant="ghost"><Pencil aria-hidden="true" /></Button>

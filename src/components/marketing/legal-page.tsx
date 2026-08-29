@@ -11,7 +11,7 @@ export function LegalPage({ children, description, title }: { children: ReactNod
             <span className="grid size-8 place-items-center rounded-lg bg-brand-900 text-white">
               <ShoppingBag aria-hidden="true" className="size-4" />
             </span>
-            CatalogoJá
+            ClickCatálogo
           </Link>
           <Link
             className="flex min-h-11 items-center gap-2 text-sm font-medium text-[var(--app-foreground-muted)] transition-colors hover:text-brand-700"

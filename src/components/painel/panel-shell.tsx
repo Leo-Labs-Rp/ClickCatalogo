@@ -28,7 +28,7 @@ export function PanelShell({ children, demo = false, slug, status, storeName, us
         <div className="flex h-16 items-center justify-between px-4 lg:px-6">
           <Link className="flex min-h-11 items-center gap-2 font-bold tracking-tight" href="/painel/loja">
             <span className="grid size-8 place-items-center rounded-lg bg-brand-900 text-white"><ShoppingBag aria-hidden="true" className="size-4" /></span>
-            CatalogoJá
+            ClickCatálogo
           </Link>
           <Badge variant={status === "ativo" ? "success" : status === "inadimplente" ? "warning" : "danger"}>{status}</Badge>
         </div>

@@ -2,12 +2,27 @@ import type { Metadata } from "next";
 import "@fontsource-variable/inter";
 import "./globals.css";
 
+import { getSiteUrl } from "@/lib/env/server";
+
+const siteUrl = getSiteUrl();
+const siteDescription = "Crie seu catálogo digital e receba pedidos pelo WhatsApp.";
+
 export const metadata: Metadata = {
-  title: {
-    default: "CatalogoJá",
-    template: "%s | CatalogoJá",
+  applicationName: "ClickCatálogo",
+  description: siteDescription,
+  metadataBase: new URL(siteUrl),
+  openGraph: {
+    description: siteDescription,
+    locale: "pt_BR",
+    siteName: "ClickCatálogo",
+    title: "ClickCatálogo",
+    type: "website",
+    url: siteUrl,
   },
-  description: "Sua loja no WhatsApp em minutos.",
+  title: {
+    default: "ClickCatálogo",
+    template: "%s | ClickCatálogo",
+  },
 };
 
 export default function RootLayout({

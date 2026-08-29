@@ -75,8 +75,8 @@ export function CategoryNav({ categories, sticky = false }: CategoryNavProps) {
                 aria-current={active ? "true" : undefined}
                 className={
                   active
-                    ? "inline-flex min-h-11 shrink-0 items-center rounded-full bg-[var(--cor-primaria)] px-4 py-2 text-sm font-semibold text-[var(--cor-fundo)] outline-none transition-opacity hover:opacity-90 focus-visible:ring-3 focus-visible:ring-[color:var(--cor-primaria)]/30"
-                    : "inline-flex min-h-11 shrink-0 items-center rounded-full border border-[var(--cor-borda)] bg-[var(--cor-superficie)] px-4 py-2 text-sm font-medium text-[var(--cor-texto-suave)] outline-none transition-colors hover:border-[var(--cor-primaria)] hover:text-[var(--cor-texto)] focus-visible:ring-3 focus-visible:ring-[color:var(--cor-primaria)]/30"
+                    ? "inline-flex min-h-11 shrink-0 items-center rounded-full border border-[var(--cor-primaria)] bg-[var(--cor-primaria)] px-4 py-2 text-sm font-semibold text-[var(--cor-fundo)] shadow-sm outline-none transition-[opacity,transform,box-shadow] hover:-translate-y-px hover:opacity-95 focus-visible:ring-3 focus-visible:ring-[color:var(--cor-primaria)]/30"
+                    : "inline-flex min-h-11 shrink-0 items-center rounded-full border border-[var(--cor-borda)] bg-[var(--cor-superficie)] px-4 py-2 text-sm font-medium text-[var(--cor-texto-suave)] shadow-[0_1px_2px_color-mix(in_srgb,var(--cor-primaria)_8%,transparent)] outline-none transition-[border-color,color,background-color,transform] hover:-translate-y-px hover:border-[var(--cor-primaria)] hover:bg-[color-mix(in_srgb,var(--cor-superficie)_92%,var(--cor-acao))] hover:text-[var(--cor-texto)] focus-visible:ring-3 focus-visible:ring-[color:var(--cor-primaria)]/30"
                 }
                 href={`#categoria-${category.id}`}
                 key={category.id}

@@ -1,14 +1,16 @@
 "use client";
 
-import { PackageOpen, Search, SearchX } from "lucide-react";
+import { PackageOpen, Search, SearchX, ShoppingCart } from "lucide-react";
 import { useEffect, useId, useMemo, useState } from "react";
 
+import { CartPanel } from "@/components/loja-publica/cart-panel";
 import { CategoryNav } from "@/components/loja-publica/category-nav";
 import { ProductGrid } from "@/components/loja-publica/product-grid";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
-import type { CatalogCategory } from "@/types/catalog";
+import { formatCurrency } from "@/lib/format/currency";
+import type { CatalogCategory, CatalogProduct } from "@/types/catalog";
 
 const SEARCH_THRESHOLD = 12;
 const STICKY_CATEGORY_THRESHOLD = 8;
@@ -17,9 +19,12 @@ const SEARCH_DEBOUNCE_MS = 300;
 
 type StoreCatalogProps = {
   categories: CatalogCategory[];
+  enableCart?: boolean;
   storeName: string;
   whatsapp: string;
 };
+
+type CartState = Record<string, { product: CatalogProduct; quantity: number }>;
 
 function normalizeSearch(value: string) {
   return value
@@ -29,7 +34,7 @@ function normalizeSearch(value: string) {
     .trim();
 }
 
-export function StoreCatalog({ categories, storeName, whatsapp }: StoreCatalogProps) {
+export function StoreCatalog({ categories, enableCart = true, storeName, whatsapp }: StoreCatalogProps) {
   const searchId = useId();
   const totalProducts = useMemo(
     () => categories.reduce((total, category) => total + category.produtos.length, 0),
@@ -38,6 +43,9 @@ export function StoreCatalog({ categories, storeName, whatsapp }: StoreCatalogPr
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [visibleByCategory, setVisibleByCategory] = useState<Record<string, number>>({});
+  const [cart, setCart] = useState<CartState>({});
+  const [cartOpen, setCartOpen] = useState(false);
+  const [announcement, setAnnouncement] = useState("");
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -69,12 +77,59 @@ export function StoreCatalog({ categories, storeName, whatsapp }: StoreCatalogPr
   const showSearch = totalProducts > SEARCH_THRESHOLD;
   const stickyCategories =
     categories.length > STICKY_CATEGORY_THRESHOLD || totalProducts > SEARCH_THRESHOLD;
+  const cartItems = useMemo(() => Object.values(cart), [cart]);
+  const cartQuantities = useMemo(
+    () => Object.fromEntries(cartItems.map((item) => [item.product.id, item.quantity])),
+    [cartItems],
+  );
+  const cartItemCount = useMemo(
+    () => cartItems.reduce((total, item) => total + item.quantity, 0),
+    [cartItems],
+  );
+  const cartTotal = useMemo(
+    () => cartItems.reduce((total, item) => total + item.product.preco * item.quantity, 0),
+    [cartItems],
+  );
 
   function loadMore(categoryId: string, currentVisible: number) {
     setVisibleByCategory((current) => ({
       ...current,
       [categoryId]: currentVisible + PRODUCTS_PER_PAGE,
     }));
+  }
+
+  function addToCart(product: CatalogProduct) {
+    setCart((current) => {
+      const existing = current[product.id];
+      return {
+        ...current,
+        [product.id]: { product, quantity: (existing?.quantity ?? 0) + 1 },
+      };
+    });
+    setAnnouncement(`${product.nome} adicionado ao carrinho.`);
+  }
+
+  function decrementCartItem(productId: string) {
+    setCart((current) => {
+      const item = current[productId];
+      if (!item) return current;
+      if (item.quantity > 1) {
+        return { ...current, [productId]: { ...item, quantity: item.quantity - 1 } };
+      }
+      const next = { ...current };
+      delete next[productId];
+      return next;
+    });
+  }
+
+  function removeCartItem(productId: string) {
+    const productName = cart[productId]?.product.nome;
+    setCart((current) => {
+      const next = { ...current };
+      delete next[productId];
+      return next;
+    });
+    if (productName) setAnnouncement(`${productName} removido do carrinho.`);
   }
 
   return (
@@ -136,7 +191,7 @@ export function StoreCatalog({ categories, storeName, whatsapp }: StoreCatalogPr
             title="Nenhum produto encontrado"
           />
         ) : (
-          <div className="space-y-10">
+          <div className="space-y-14 @2xl/store:space-y-16">
             {filteredCategories.map((category) => {
               const visibleCount = visibleByCategory[category.id] ?? PRODUCTS_PER_PAGE;
               const visibleProducts = category.produtos.slice(0, visibleCount);
@@ -149,13 +204,19 @@ export function StoreCatalog({ categories, storeName, whatsapp }: StoreCatalogPr
                   id={`categoria-${category.id}`}
                   key={category.id}
                 >
-                  <h3
-                    className="mb-4 text-lg font-semibold text-[var(--cor-texto)]"
-                    id={`titulo-categoria-${category.id}`}
-                  >
-                    {category.nome}
-                  </h3>
+                  <div className="mb-5 flex items-center gap-3">
+                    <span aria-hidden="true" className="h-6 w-1 rounded-full bg-[var(--cor-acao)]" />
+                    <h3
+                      className="text-lg font-semibold tracking-tight text-[var(--cor-texto)] @2xl/store:text-xl"
+                      id={`titulo-categoria-${category.id}`}
+                    >
+                      {category.nome}
+                    </h3>
+                  </div>
                   <ProductGrid
+                    cartQuantities={enableCart ? cartQuantities : undefined}
+                    onAdd={enableCart ? addToCart : undefined}
+                    onDecrement={enableCart ? decrementCartItem : undefined}
                     products={visibleProducts}
                     storeName={storeName}
                     whatsapp={whatsapp}
@@ -176,6 +237,42 @@ export function StoreCatalog({ categories, storeName, whatsapp }: StoreCatalogPr
           </div>
         )}
       </main>
+
+      {enableCart ? (
+        <>
+          <p aria-live="polite" className="sr-only">{announcement}</p>
+          <Button
+            aria-label={`Abrir carrinho com ${cartItemCount} ${cartItemCount === 1 ? "item" : "itens"}`}
+            className="fixed inset-x-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-40 h-14 justify-between rounded-full px-5 shadow-xl sm:left-auto sm:right-6 sm:w-auto sm:min-w-56"
+            onClick={() => setCartOpen(true)}
+            size="lg"
+            variant="theme"
+          >
+            <span className="flex items-center gap-2">
+              <ShoppingCart aria-hidden="true" />
+              Carrinho
+              <span aria-live="polite" className="grid min-w-6 place-items-center rounded-full bg-[var(--cor-na-acao)] px-1.5 py-0.5 text-xs text-[var(--cor-acao)]">
+                {cartItemCount}
+              </span>
+            </span>
+            <span>{formatCurrency(cartTotal)}</span>
+          </Button>
+          <CartPanel
+            items={cartItems}
+            onClose={() => setCartOpen(false)}
+            onDecrement={decrementCartItem}
+            onIncrement={(productId) => {
+              const product = cart[productId]?.product;
+              if (product) addToCart(product);
+            }}
+            onRemove={removeCartItem}
+            open={cartOpen}
+            storeName={storeName}
+            whatsapp={whatsapp}
+          />
+          <div aria-hidden="true" className="h-20" />
+        </>
+      ) : null}
     </>
   );
 }

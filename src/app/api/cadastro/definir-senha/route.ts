@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { isSupabaseConfigured } from "@/lib/env/public";
+import { enforceRateLimit, PUBLIC_API_RATE_LIMITS } from "@/lib/security/rate-limit";
+import { enforceSameOrigin } from "@/lib/security/same-origin";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const passwordSetupSchema = z.object({
@@ -11,6 +13,12 @@ const passwordSetupSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const originResponse = enforceSameOrigin(request);
+  if (originResponse) return originResponse;
+
+  const rateLimitResponse = enforceRateLimit(request, PUBLIC_API_RATE_LIMITS.passwordSetup);
+  if (rateLimitResponse) return rateLimitResponse;
+
   const input: unknown = await request.json().catch(() => null);
   const parsed = passwordSetupSchema.safeParse(input);
 

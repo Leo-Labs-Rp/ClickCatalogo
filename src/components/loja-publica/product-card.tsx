@@ -1,25 +1,28 @@
-import { ImageIcon, MessageCircle } from "lucide-react";
+import { ImageIcon, MessageCircle, Minus, Plus, ShoppingCart } from "lucide-react";
 import Image from "next/image";
 
-import { buttonVariants } from "@/components/ui";
+import { Button, buttonVariants } from "@/components/ui";
 import { formatCurrency } from "@/lib/format/currency";
 import { createWhatsAppUrl } from "@/lib/whatsapp/url";
 import type { CatalogProduct } from "@/types/catalog";
 
 export type ProductCardProps = {
+  cartQuantity?: number;
+  onAdd?: (product: CatalogProduct) => void;
+  onDecrement?: (productId: string) => void;
   product: CatalogProduct;
   storeName: string;
   whatsapp: string;
 };
 
-export function ProductCard({ product, storeName, whatsapp }: ProductCardProps) {
+export function ProductCard({ cartQuantity = 0, onAdd, onDecrement, product, storeName, whatsapp }: ProductCardProps) {
   const orderUrl = createWhatsAppUrl(
     whatsapp,
     `Olá! Tenho interesse no produto “${product.nome}” da ${storeName}.`,
   );
 
   return (
-    <article className="group @container/product flex w-full min-w-0 max-w-none self-stretch flex-col overflow-hidden rounded-[var(--radius-card)] border border-[var(--cor-borda)] bg-[var(--cor-superficie)] shadow-[var(--shadow-elevation)]">
+    <article className="group @container/product flex min-h-[22rem] w-full min-w-0 max-w-none self-stretch flex-col overflow-hidden rounded-[var(--radius-card)] border border-[var(--cor-borda)] bg-[var(--cor-superficie)] shadow-[var(--shadow-elevation)]">
       <div className="relative aspect-square w-full overflow-hidden bg-[var(--cor-imagem-fundo)]">
         {product.imagem_url ? (
           <Image
@@ -31,15 +34,17 @@ export function ProductCard({ product, storeName, whatsapp }: ProductCardProps) 
             src={product.imagem_url}
           />
         ) : (
-          <div className="grid h-full w-full place-items-center text-[var(--cor-texto-suave)]">
-            <ImageIcon aria-hidden="true" className="size-8" strokeWidth={1.5} />
+          <div className="grid h-full w-full place-items-center bg-[color-mix(in_srgb,var(--cor-imagem-fundo)_86%,var(--cor-acao))] text-[var(--cor-primaria)]">
+            <span className="grid size-14 place-items-center rounded-full border border-[color-mix(in_srgb,var(--cor-borda)_70%,var(--cor-acao))] bg-[color-mix(in_srgb,var(--cor-superficie)_82%,var(--cor-acao))]">
+              <ImageIcon aria-hidden="true" className="size-7 opacity-75" strokeWidth={1.5} />
+            </span>
             <span className="sr-only">Produto sem imagem</span>
           </div>
         )}
       </div>
 
       <div className="flex flex-1 flex-col p-3 @[14rem]/product:p-4">
-        <h3 className="line-clamp-2 text-sm font-semibold leading-5 text-[var(--cor-texto)] @[14rem]/product:text-base">
+        <h3 className="min-h-10 line-clamp-2 text-sm font-semibold leading-5 text-[var(--cor-texto)] @[14rem]/product:text-base">
           {product.nome}
         </h3>
         <p className="mt-1 text-base font-bold tracking-tight text-[var(--cor-primaria)] @[14rem]/product:text-lg">
@@ -52,13 +57,45 @@ export function ProductCard({ product, storeName, whatsapp }: ProductCardProps) 
           </p>
         ) : null}
 
-        {product.variacao_info ? (
-          <p className="mt-2 line-clamp-2 text-[11px] leading-4 text-[var(--cor-texto-suave)] @[14rem]/product:text-xs">
-            {product.variacao_info}
-          </p>
-        ) : null}
+        <div className="mt-2 min-h-8">
+          {product.variacao_info ? (
+            <p className="line-clamp-2 text-[11px] leading-4 text-[var(--cor-texto-suave)] @[14rem]/product:text-xs">
+              {product.variacao_info}
+            </p>
+          ) : null}
+        </div>
 
-        <div className="mt-auto pt-4">
+        <div className="mt-auto grid gap-2 pt-4">
+          {onAdd && onDecrement ? (
+            cartQuantity > 0 ? (
+              <div className="flex h-11 items-center justify-between rounded-[var(--radius-control)] border border-[var(--cor-borda)] bg-[var(--cor-fundo)]">
+                <Button
+                  aria-label={`Diminuir quantidade de ${product.nome}`}
+                  className="text-[var(--cor-texto)] hover:bg-[var(--cor-imagem-fundo)]"
+                  onClick={() => onDecrement(product.id)}
+                  size="icon"
+                  variant="ghost"
+                >
+                  <Minus aria-hidden="true" />
+                </Button>
+                <span aria-label={`Quantidade no carrinho: ${cartQuantity}`} className="text-sm font-semibold text-[var(--cor-texto)]">{cartQuantity}</span>
+                <Button
+                  aria-label={`Aumentar quantidade de ${product.nome}`}
+                  className="text-[var(--cor-texto)] hover:bg-[var(--cor-imagem-fundo)]"
+                  onClick={() => onAdd(product)}
+                  size="icon"
+                  variant="ghost"
+                >
+                  <Plus aria-hidden="true" />
+                </Button>
+              </div>
+            ) : (
+              <Button aria-label={`Adicionar ${product.nome} ao carrinho`} className="w-full" onClick={() => onAdd(product)} size="sm" variant="themeSecondary">
+                <ShoppingCart aria-hidden="true" />
+                Adicionar
+              </Button>
+            )
+          ) : null}
           <a
             aria-label={`Pedir ${product.nome} pelo WhatsApp`}
             className={buttonVariants({ className: "w-full", size: "sm", variant: "theme" })}

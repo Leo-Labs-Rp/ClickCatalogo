@@ -1,19 +1,20 @@
-# CatalogoJá
+# ClickCatálogo
 
 SaaS multi-tenant de catálogo digital para comerciantes divulgarem produtos e receberem pedidos pelo WhatsApp.
 
 ## Estado atual
 
-Etapa funcional concluída: landing comercial, assinatura em duas etapas, checkout recorrente, webhook idempotente, acesso por senha, painel completo e catálogo público multi-tenant. O projeto não envia e-mails: após o pagamento, o cliente cria a senha na própria tela de sucesso. O design system responsivo oferece seis temas.
+Etapa funcional concluída: landing comercial, cadastro em duas etapas, checkout recorrente, webhook idempotente, acesso por senha, painel completo e catálogo público multi-tenant. Após o pagamento, o cliente cria a senha na própria tela de sucesso. A recuperação de senha está implementada e requer SMTP configurado no Supabase. O design system responsivo oferece seis temas.
 
 As integrações não exigem chaves para o projeto compilar. Os clientes Supabase validam a configuração apenas quando uma operação de banco é executada.
 
 ## Requisitos
 
-- Node.js 20.20 ou superior
+- Node.js 22 ou superior
 - npm 10 ou superior
 - Um projeto Supabase (necessário para autenticação, banco e uploads)
 - Uma conta Asaas Sandbox (necessária para testar o checkout e os webhooks)
+- Uma conta Netlify para publicar a aplicação
 
 ## Desenvolvimento local
 
@@ -29,18 +30,20 @@ Preencha `.env.local` quando as credenciais estiverem disponíveis. Nunca envie 
 
 - `/`: landing comercial;
 - `/cadastro`: dados, slug em tempo real, tema e checkout;
-- `/painel`: acesso real por e-mail e senha, sem envio de mensagens, além da demonstração pública;
+- `/painel`: acesso real por e-mail e senha, recuperação de acesso e demonstração pública;
 - `/painel/loja`, `/painel/categorias`, `/painel/produtos`, `/painel/assinatura`;
 - `/loja/[slug]`: catálogo público;
 - `/api/webhooks/asaas`: sincronização de pagamento e provisionamento.
 
 ## Ativação das integrações
 
-1. Aplique todas as migrações em `supabase/migrations`.
+1. Em um Supabase novo, execute somente `supabase/schema.sql`.
 2. Copie `.env.example` para `.env.local` e informe as chaves.
 3. No Supabase Auth, adicione `http://localhost:3000/auth/callback` às URLs permitidas em desenvolvimento.
-4. No Asaas Sandbox, cadastre `https://SEU-DOMINIO/api/webhooks/asaas` e use exatamente o mesmo token de `ASAAS_WEBHOOK_TOKEN`.
-5. Para testar webhooks localmente, use uma URL HTTPS pública de túnel e atualize `NEXT_PUBLIC_SITE_URL`.
+4. Para recuperação de senha em produção, verifique `auth.clickcatalogo.com` no Resend e conecte a integração ao SMTP do Supabase Auth; nenhuma variável Resend é usada pela aplicação.
+5. No Asaas Sandbox, cadastre `https://SEU-DOMINIO/api/webhooks/asaas` e use exatamente o mesmo token de `ASAAS_WEBHOOK_TOKEN`.
+6. Para testar webhooks localmente, use uma URL HTTPS pública de túnel e atualize `NEXT_PUBLIC_SITE_URL`.
+7. Para publicar, conecte o repositório à Netlify; `netlify.toml` contém as configurações de build.
 
 O webhook trata confirmações, recebimentos, atrasos, cancelamentos e eventos do Checkout. Reentregas são registradas por `event_id`, impedindo provisionamento duplicado.
 
@@ -61,4 +64,4 @@ Tokens, temas e componentes reutilizáveis estão documentados em `docs/design-s
 
 ## Banco de dados
 
-As migrações estão em `supabase/migrations`. Consulte `supabase/README.md` antes de aplicá-las.
+O banco completo para um projeto novo está em `supabase/schema.sql`. Consulte `SETUP.md` para Supabase, Netlify, Auth e Asaas.

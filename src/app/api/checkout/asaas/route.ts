@@ -3,6 +3,9 @@ import { NextResponse } from "next/server";
 import { createRecurringCheckout } from "@/lib/asaas/client";
 import { getAsaasEnv, getSiteUrl } from "@/lib/env/server";
 import { isSupabaseConfigured } from "@/lib/env/public";
+import { enforceRateLimit, PUBLIC_API_RATE_LIMITS } from "@/lib/security/rate-limit";
+import { enforceSameOrigin } from "@/lib/security/same-origin";
+import { expireStaleSignupIntents } from "@/lib/signup/intents";
 import { signupSchema } from "@/lib/signup/schema";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -18,6 +21,12 @@ function todayInBrazil() {
 }
 
 export async function POST(request: Request) {
+  const originResponse = enforceSameOrigin(request);
+  if (originResponse) return originResponse;
+
+  const rateLimitResponse = enforceRateLimit(request, PUBLIC_API_RATE_LIMITS.checkout);
+  if (rateLimitResponse) return rateLimitResponse;
+
   const input: unknown = await request.json().catch(() => null);
   const parsed = signupSchema.safeParse(input);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Revise os dados informados." }, { status: 400 });
@@ -28,13 +37,20 @@ export async function POST(request: Request) {
 
   const siteUrl = getSiteUrl();
   if (!siteUrl.startsWith("https://")) {
-    return NextResponse.json({ error: "Para testar o pagamento, configure NEXT_PUBLIC_SITE_URL com a URL pública HTTPS da Vercel ou de um túnel seguro." }, { status: 503 });
+    return NextResponse.json({ error: "Para testar o pagamento, configure NEXT_PUBLIC_SITE_URL com a URL pública HTTPS da aplicação ou de um túnel seguro." }, { status: 503 });
   }
 
   const admin = createAdminClient();
+  try {
+    await expireStaleSignupIntents(admin);
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : "Falha ao liberar cadastros expirados.");
+    return NextResponse.json({ error: "Não foi possível verificar o endereço da loja agora. Tente novamente." }, { status: 503 });
+  }
+
   const [{ count: tenantCount }, { count: intentCount }] = await Promise.all([
     admin.from("tenants").select("id", { count: "exact", head: true }).eq("slug", parsed.data.slug),
-    admin.from("signup_intents").select("id", { count: "exact", head: true }).eq("slug", parsed.data.slug).in("status", ["pendente", "pago"]).gt("expires_at", new Date().toISOString()),
+    admin.from("signup_intents").select("id", { count: "exact", head: true }).eq("slug", parsed.data.slug).in("status", ["pendente", "pago"]),
   ]);
   if ((tenantCount ?? 0) > 0 || (intentCount ?? 0) > 0) return NextResponse.json({ error: "Este endereço acabou de ser reservado. Escolha outro slug." }, { status: 409 });
 
@@ -49,6 +65,9 @@ export async function POST(request: Request) {
     whatsapp: parsed.data.whatsapp,
   }).select("external_reference").single();
 
+  if (intentError?.code === "23505") {
+    return NextResponse.json({ error: "Este endereço acabou de ser reservado. Escolha outro slug." }, { status: 409 });
+  }
   if (intentError || !intent) return NextResponse.json({ error: "Não foi possível reservar seu cadastro. Tente novamente." }, { status: 500 });
 
   try {

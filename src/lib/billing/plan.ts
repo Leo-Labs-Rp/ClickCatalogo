@@ -1,6 +1,6 @@
-export const CATALOGOJA_MONTHLY_PLAN = {
+export const CLICKCATALOGO_MONTHLY_PLAN = {
   cycle: "MONTHLY" as const,
   description: "Catálogo digital com pedidos pelo WhatsApp",
-  name: "Assinatura CatalogoJá",
+  name: "Assinatura ClickCatálogo",
   value: 27,
 };

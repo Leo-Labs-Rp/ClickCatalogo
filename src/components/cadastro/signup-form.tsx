@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { CATALOGOJA_MONTHLY_PLAN } from "@/lib/billing/plan";
+import { CLICKCATALOGO_MONTHLY_PLAN } from "@/lib/billing/plan";
 import { signupSchema } from "@/lib/signup/schema";
 import { formatBrazilWhatsApp, normalizeBrazilWhatsAppInput } from "@/lib/whatsapp/url";
 import type { TenantTheme } from "@/types/database";
@@ -90,7 +90,7 @@ export function SignupForm() {
         </Card>
       ) : (
         <div className="grid items-start gap-6 lg:grid-cols-[0.75fr_1.25fr]">
-          <Card className="p-5 sm:p-6"><h1 className="text-2xl font-bold">Escolha a cara da loja</h1><p className="mt-2 text-sm leading-6 text-[var(--app-foreground-muted)]">Você poderá trocar o tema pelo painel a qualquer momento.</p>{error ? <Alert className="mt-5" title={error} variant="danger" /> : null}<div className="mt-6"><ThemePicker onValueChange={(tema) => update("tema", tema)} value={form.tema} /></div><div className="mt-6 rounded-lg bg-brand-50 p-4"><p className="text-sm font-semibold">{CATALOGOJA_MONTHLY_PLAN.name}</p><p className="mt-1 text-2xl font-bold">R$ {CATALOGOJA_MONTHLY_PLAN.value} <span className="text-sm font-normal text-[var(--app-foreground-muted)]">/ mês</span></p></div><div className="mt-5 grid gap-2"><Button disabled={submitting} onClick={checkout} size="lg">{submitting ? <LoaderCircle aria-hidden="true" className="animate-spin" /> : <LockKeyhole aria-hidden="true" />}{submitting ? "Abrindo checkout..." : "Ir para pagamento seguro"}</Button><Button disabled={submitting} onClick={() => setStep(1)} variant="ghost"><ArrowLeft aria-hidden="true" />Voltar e revisar</Button></div></Card>
+          <Card className="p-5 sm:p-6"><h1 className="text-2xl font-bold">Escolha a cara da loja</h1><p className="mt-2 text-sm leading-6 text-[var(--app-foreground-muted)]">Você poderá trocar o tema pelo painel a qualquer momento.</p>{error ? <Alert className="mt-5" title={error} variant="danger" /> : null}<div className="mt-6"><ThemePicker onValueChange={(tema) => update("tema", tema)} value={form.tema} /></div><div className="mt-6 rounded-lg bg-brand-50 p-4"><p className="text-sm font-semibold">{CLICKCATALOGO_MONTHLY_PLAN.name}</p><p className="mt-1 text-2xl font-bold">R$ {CLICKCATALOGO_MONTHLY_PLAN.value} <span className="text-sm font-normal text-[var(--app-foreground-muted)]">/ mês</span></p></div><div className="mt-5 grid gap-2"><Button disabled={submitting} onClick={checkout} size="lg">{submitting ? <LoaderCircle aria-hidden="true" className="animate-spin" /> : <LockKeyhole aria-hidden="true" />}{submitting ? "Abrindo checkout..." : "Ir para pagamento seguro"}</Button><Button disabled={submitting} onClick={() => setStep(1)} variant="ghost"><ArrowLeft aria-hidden="true" />Voltar e revisar</Button></div></Card>
           <div><p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-brand-600">Sua loja ao vivo</p><div className="max-h-[45rem] overflow-auto rounded-[var(--radius-panel)]"><StorePreview catalog={preview} framed theme={form.tema} /></div></div>
         </div>
       )}

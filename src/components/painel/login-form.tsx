@@ -1,6 +1,7 @@
 "use client";
 
 import { KeyRound } from "lucide-react";
+import Link from "next/link";
 import { useActionState } from "react";
 
 import { loginWithPasswordAction } from "@/app/painel/actions";
@@ -20,7 +21,15 @@ export function LoginForm() {
       </Field>
 
       <Field>
-        <FieldLabel htmlFor="password">Senha</FieldLabel>
+        <div className="flex items-center justify-between gap-3">
+          <FieldLabel htmlFor="password">Senha</FieldLabel>
+          <Link
+            className="inline-flex min-h-11 items-center text-sm font-semibold text-brand-700 hover:underline"
+            href="/painel/recuperar-senha"
+          >
+            Esqueci minha senha
+          </Link>
+        </div>
         <Input autoComplete="current-password" id="password" name="password" placeholder="Sua senha" required type="password" />
       </Field>
 

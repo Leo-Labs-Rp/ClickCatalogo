@@ -1,6 +1,18 @@
 # Banco Supabase
 
-## Migrações
+## Projeto novo
+
+Para um Supabase vazio, a opção recomendada é executar uma única vez:
+
+```text
+supabase/schema.sql
+```
+
+Depois execute `supabase/verify-setup.sql`, que apenas confere tabelas, RLS, funções, bucket e policies.
+
+Não execute o schema consolidado e as migrations individuais no mesmo projeto.
+
+## Histórico de migrações
 
 O arquivo `migrations/202607180001_initial_schema.sql` cria:
 
@@ -18,6 +30,8 @@ O arquivo `migrations/202607190003_normalize_brazil_whatsapp.sql` normaliza núm
 
 O arquivo `migrations/202608060004_asaas_customer_lookup.sql` adiciona o índice usado pela reconciliação idempotente de eventos do Asaas por cliente, mantendo `asaas_subscription_id` como identificador exclusivo da assinatura.
 
+O arquivo `migrations/202608280005_expire_stale_signup_intents.sql` libera slugs de checkouts pendentes vencidos mesmo quando o evento `CHECKOUT_EXPIRED` não chega. Em bancos que já receberam o schema antes desta migration, execute somente este arquivo complementar no SQL Editor.
+
 ## Aplicação
 
 Quando o projeto Supabase existir, vincule o CLI ao projeto e execute:
@@ -27,7 +41,7 @@ npx supabase link --project-ref SEU_PROJECT_REF
 npx supabase db push
 ```
 
-Também é possível executar a migração uma única vez pelo SQL Editor do Supabase.
+O fluxo com CLI é uma alternativa para ambientes já vinculados. Para o novo projeto atual, use o schema consolidado pelo SQL Editor.
 
 ## Decisões de segurança
 

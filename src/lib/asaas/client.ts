@@ -2,13 +2,20 @@ import "server-only";
 
 import { z } from "zod";
 
-import { CATALOGOJA_MONTHLY_PLAN } from "@/lib/billing/plan";
+import { CLICKCATALOGO_MONTHLY_PLAN } from "@/lib/billing/plan";
 import { requireAsaasEnv } from "@/lib/env/server";
 
 const checkoutResponseSchema = z.object({
   id: z.string(),
   link: z.url().optional(),
 });
+
+export class AsaasSubscriptionCancellationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "AsaasSubscriptionCancellationError";
+  }
+}
 
 export type CreateCheckoutInput = {
   externalReference: string;
@@ -39,14 +46,14 @@ export async function createRecurringCheckout(input: CreateCheckoutInput) {
       },
       chargeTypes: ["RECURRENT"],
       externalReference: input.externalReference,
-      items: [{ description: CATALOGOJA_MONTHLY_PLAN.description, name: CATALOGOJA_MONTHLY_PLAN.name, quantity: 1, value: CATALOGOJA_MONTHLY_PLAN.value }],
+      items: [{ description: CLICKCATALOGO_MONTHLY_PLAN.description, name: CLICKCATALOGO_MONTHLY_PLAN.name, quantity: 1, value: CLICKCATALOGO_MONTHLY_PLAN.value }],
       minutesToExpire: 60,
-      subscription: { cycle: CATALOGOJA_MONTHLY_PLAN.cycle, nextDueDate: input.nextDueDate },
+      subscription: { cycle: CLICKCATALOGO_MONTHLY_PLAN.cycle, nextDueDate: input.nextDueDate },
     }),
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
-      "User-Agent": `CatalogoJa/0.1.0 (${env.environment})`,
+      "User-Agent": `ClickCatalogo/0.1.0 (${env.environment})`,
       access_token: env.apiKey,
     },
     method: "POST",
@@ -61,4 +68,47 @@ export async function createRecurringCheckout(input: CreateCheckoutInput) {
 
   const checkout = checkoutResponseSchema.parse(body);
   return { id: checkout.id, link: checkoutUrl(checkout.id, checkout.link, env.apiUrl) };
+}
+
+export async function cancelAsaasSubscription(subscriptionId: string) {
+  const env = requireAsaasEnv();
+
+  try {
+    const response = await fetch(
+      `${env.apiUrl}/subscriptions/${encodeURIComponent(subscriptionId)}`,
+      {
+        headers: {
+          Accept: "application/json",
+          "User-Agent": `ClickCatalogo/0.1.0 (${env.environment})`,
+          access_token: env.apiKey,
+        },
+        method: "DELETE",
+        signal: AbortSignal.timeout(15_000),
+      },
+    );
+
+    if (response.ok) return;
+
+    if (response.status === 401) {
+      throw new AsaasSubscriptionCancellationError(
+        "O Asaas recusou a autenticação. A assinatura não foi cancelada; tente novamente mais tarde.",
+      );
+    }
+
+    if (response.status === 404) {
+      throw new AsaasSubscriptionCancellationError(
+        "A assinatura não foi encontrada no Asaas. Nenhuma alteração foi confirmada; tente novamente mais tarde.",
+      );
+    }
+
+    throw new AsaasSubscriptionCancellationError(
+      "O Asaas não confirmou o cancelamento. Sua assinatura continua ativa; aguarde um instante e tente novamente.",
+    );
+  } catch (error) {
+    if (error instanceof AsaasSubscriptionCancellationError) throw error;
+
+    throw new AsaasSubscriptionCancellationError(
+      "Não foi possível comunicar com o Asaas. Sua assinatura não foi cancelada; verifique sua conexão e tente novamente.",
+    );
+  }
 }

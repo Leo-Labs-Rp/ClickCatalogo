@@ -1,4 +1,4 @@
-# Design system do CatalogoJá
+# Design system do ClickCatálogo
 
 ## Organização
 
