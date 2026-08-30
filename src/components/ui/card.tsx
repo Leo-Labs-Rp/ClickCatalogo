@@ -18,9 +18,9 @@ export function CardHeader({ className, ...props }: ComponentProps<"div">) {
   return <div className={cn("grid gap-1.5 p-6 pb-0", className)} {...props} />;
 }
 
-export function CardTitle({ className, ...props }: ComponentProps<"h3">) {
+export function CardTitle({ as: Element = "h3", className, ...props }: ComponentProps<"h3"> & { as?: "h1" | "h2" | "h3" }) {
   return (
-    <h3
+    <Element
       className={cn("text-lg font-semibold tracking-tight text-[var(--app-foreground)]", className)}
       {...props}
     />

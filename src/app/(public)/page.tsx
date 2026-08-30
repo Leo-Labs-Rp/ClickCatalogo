@@ -18,7 +18,10 @@ import { ThemePreviewSection } from "@/components/marketing/theme-preview-sectio
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
-export const metadata: Metadata = { title: "Sua loja no WhatsApp em minutos" };
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+  title: "Sua loja no WhatsApp em minutos",
+};
 
 const steps = [
   {

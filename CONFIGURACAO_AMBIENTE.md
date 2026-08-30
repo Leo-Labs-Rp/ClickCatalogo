@@ -9,6 +9,8 @@ O passo a passo completo está em `C:\Projeto-Github\ClickCatálogo\SETUP.md`. E
 - deploy: **Netlify → Project configuration → Environment variables**;
 - banco: `C:\Projeto-Github\ClickCatálogo\supabase\schema.sql`.
 
+Se o banco atual já recebeu o schema, execute também, antes do próximo deploy, `C:\Projeto-Github\ClickCatálogo\supabase\migrations\202608290006_prelaunch_hardening.sql`.
+
 Nunca grave valores reais em `.env.example`, documentação ou Git.
 
 ## Variáveis
@@ -46,7 +48,9 @@ ASAAS_API_URL=
 
 ## Netlify
 
-Na Netlify, use `NEXT_PUBLIC_SITE_URL=https://clickcatalogo.netlify.app`, sem barra final. Depois de vincular o domínio, troque para `https://clickcatalogo.com` e faça novo deploy.
+Na Netlify de produção, use `NEXT_PUBLIC_SITE_URL=https://clickcatalogo.com`, sem barra final. Em instalações de teste separadas, use a URL `*.netlify.app` correspondente.
+
+O `netlify.toml` não fixa essa URL. O painel da Netlify é a fonte única para evitar callbacks presos ao domínio de teste.
 
 Marque `SUPABASE_SERVICE_ROLE_KEY`, `ASAAS_API_KEY` e `ASAAS_WEBHOOK_TOKEN` como valores secretos. Mudanças em variáveis exigem novo build/deploy.
 

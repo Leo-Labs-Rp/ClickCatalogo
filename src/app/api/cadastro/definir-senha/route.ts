@@ -16,7 +16,7 @@ export async function POST(request: Request) {
   const originResponse = enforceSameOrigin(request);
   if (originResponse) return originResponse;
 
-  const rateLimitResponse = enforceRateLimit(request, PUBLIC_API_RATE_LIMITS.passwordSetup);
+  const rateLimitResponse = await enforceRateLimit(request, PUBLIC_API_RATE_LIMITS.passwordSetup);
   if (rateLimitResponse) return rateLimitResponse;
 
   const input: unknown = await request.json().catch(() => null);

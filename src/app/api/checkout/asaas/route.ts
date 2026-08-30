@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   const originResponse = enforceSameOrigin(request);
   if (originResponse) return originResponse;
 
-  const rateLimitResponse = enforceRateLimit(request, PUBLIC_API_RATE_LIMITS.checkout);
+  const rateLimitResponse = await enforceRateLimit(request, PUBLIC_API_RATE_LIMITS.checkout);
   if (rateLimitResponse) return rateLimitResponse;
 
   const input: unknown = await request.json().catch(() => null);
@@ -48,11 +48,27 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Não foi possível verificar o endereço da loja agora. Tente novamente." }, { status: 503 });
   }
 
-  const [{ count: tenantCount }, { count: intentCount }] = await Promise.all([
+  const { data: emailHasTenant, error: emailLookupError } = await admin.rpc("email_has_tenant", {
+    p_email: parsed.data.email,
+  });
+  if (emailLookupError) {
+    console.error("Falha ao verificar conta existente:", emailLookupError.message);
+    return NextResponse.json({ error: "Não foi possível validar o cadastro agora. Tente novamente." }, { status: 503 });
+  }
+  if (emailHasTenant) {
+    return NextResponse.json(
+      { error: "Este e-mail já possui uma loja. Entre no painel ou recupere sua senha." },
+      { status: 409 },
+    );
+  }
+
+  const [{ count: tenantCount }, { count: intentCount }, { count: emailIntentCount }] = await Promise.all([
     admin.from("tenants").select("id", { count: "exact", head: true }).eq("slug", parsed.data.slug),
     admin.from("signup_intents").select("id", { count: "exact", head: true }).eq("slug", parsed.data.slug).in("status", ["pendente", "pago"]),
+    admin.from("signup_intents").select("id", { count: "exact", head: true }).eq("email", parsed.data.email).in("status", ["pendente", "pago"]),
   ]);
   if ((tenantCount ?? 0) > 0 || (intentCount ?? 0) > 0) return NextResponse.json({ error: "Este endereço acabou de ser reservado. Escolha outro slug." }, { status: 409 });
+  if ((emailIntentCount ?? 0) > 0) return NextResponse.json({ error: "Já existe um cadastro ou pagamento em andamento para este e-mail." }, { status: 409 });
 
   const now = new Date().toISOString();
   const { data: intent, error: intentError } = await admin.from("signup_intents").insert({
@@ -66,17 +82,22 @@ export async function POST(request: Request) {
   }).select("external_reference").single();
 
   if (intentError?.code === "23505") {
-    return NextResponse.json({ error: "Este endereço acabou de ser reservado. Escolha outro slug." }, { status: 409 });
+    return NextResponse.json({ error: "Este endereço ou e-mail acabou de ser reservado. Revise os dados e tente novamente." }, { status: 409 });
   }
   if (intentError || !intent) return NextResponse.json({ error: "Não foi possível reservar seu cadastro. Tente novamente." }, { status: 500 });
 
   try {
     const successUrl = `${siteUrl}/cadastro/sucesso?ref=${intent.external_reference}`;
     const checkout = await createRecurringCheckout({ externalReference: intent.external_reference, nextDueDate: todayInBrazil(), successUrl });
-    await admin.from("signup_intents").update({ asaas_checkout_id: checkout.id }).eq("external_reference", intent.external_reference);
+    const { error: checkoutUpdateError } = await admin
+      .from("signup_intents")
+      .update({ asaas_checkout_id: checkout.id })
+      .eq("external_reference", intent.external_reference);
+    if (checkoutUpdateError) throw checkoutUpdateError;
     return NextResponse.json({ checkoutUrl: checkout.link });
   } catch (error) {
-    await admin.from("signup_intents").update({ status: "cancelado" }).eq("external_reference", intent.external_reference);
+    const { error: cancelError } = await admin.from("signup_intents").update({ status: "cancelado" }).eq("external_reference", intent.external_reference);
+    if (cancelError) console.error("Falha ao cancelar intenção após erro no checkout:", cancelError.message);
     console.error("Falha ao criar checkout Asaas:", error instanceof Error ? error.message : "erro desconhecido");
     return NextResponse.json({ error: "Não foi possível abrir o checkout agora. Aguarde um instante e tente novamente." }, { status: 502 });
   }

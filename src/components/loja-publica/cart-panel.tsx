@@ -4,6 +4,7 @@ import { MessageCircle, Minus, Plus, ShoppingCart, Trash2, X } from "lucide-reac
 import { useEffect, useMemo, useRef } from "react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 import { formatCurrency } from "@/lib/format/currency";
 import { createCartMessage, type CartLine } from "@/lib/whatsapp/cart-message";
 import { createWhatsAppUrl } from "@/lib/whatsapp/url";
@@ -37,6 +38,7 @@ export function CartPanel({
   const orderUrl = items.length
     ? createWhatsAppUrl(whatsapp, createCartMessage(storeName, items))
     : null;
+  const messageTooLong = (orderUrl?.length ?? 0) > 7_000;
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -155,7 +157,15 @@ export function CartPanel({
                 <span className="text-sm text-[var(--cor-texto-suave)]">Total do pedido</span>
                 <strong className="text-xl text-[var(--cor-primaria)]">{formatCurrency(total)}</strong>
               </div>
-              {orderUrl ? (
+              {messageTooLong ? (
+                <Alert
+                  className="mb-4"
+                  description="Remova alguns produtos e envie mais de um pedido para garantir que o WhatsApp abra corretamente."
+                  title="Este pedido ficou muito grande"
+                  variant="warning"
+                />
+              ) : null}
+              {orderUrl && !messageTooLong ? (
                 <a
                   className={buttonVariants({ className: "w-full", size: "lg", variant: "theme" })}
                   href={orderUrl}

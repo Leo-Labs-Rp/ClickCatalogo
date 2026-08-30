@@ -45,6 +45,8 @@ export async function updateStoreAction(formData: FormData): Promise<ActionResul
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos.", ok: false };
 
   const entries = { banner: formData.get("banner"), logo: formData.get("logo") };
+  const removeBanner = formData.get("remove-banner") === "true";
+  const removeLogo = formData.get("remove-logo") === "true";
   const files = Object.fromEntries(Object.entries(entries).map(([key, entry]) => [key, entry instanceof File && entry.size > 0 ? entry : null])) as { banner: File | null; logo: File | null };
   for (const file of Object.values(files)) {
     if (file && (!ALLOWED_TYPES.has(file.type) || file.size > MAX_FILE_SIZE)) return { error: "Logo e banner devem ser JPG, PNG ou WebP com no máximo 2 MB.", ok: false };
@@ -55,8 +57,8 @@ export async function updateStoreAction(formData: FormData): Promise<ActionResul
     const { demo, tenant } = await requireTenant();
     if (demo) return { error: "O modo de demonstração não publica alterações.", ok: false };
     const supabase = await createClient();
-    let bannerUrl = tenant.banner_url;
-    let logoUrl = tenant.logo_url;
+    let bannerUrl = removeBanner ? null : tenant.banner_url;
+    let logoUrl = removeLogo ? null : tenant.logo_url;
 
     for (const [kind, file] of Object.entries(files) as ["banner" | "logo", File | null][]) {
       if (!file) continue;
@@ -81,8 +83,11 @@ export async function updateStoreAction(formData: FormData): Promise<ActionResul
     }).eq("id", tenant.id).eq("owner_user_id", tenant.owner_user_id);
     if (error) throw error;
 
-    const oldPaths = [files.logo ? storagePathFromUrl(tenant.logo_url) : null, files.banner ? storagePathFromUrl(tenant.banner_url) : null].filter((path): path is string => Boolean(path));
-    if (oldPaths.length) await supabase.storage.from("produtos").remove(oldPaths);
+    const oldPaths = [files.logo || removeLogo ? storagePathFromUrl(tenant.logo_url) : null, files.banner || removeBanner ? storagePathFromUrl(tenant.banner_url) : null].filter((path): path is string => Boolean(path));
+    if (oldPaths.length) {
+      const { error: cleanupError } = await supabase.storage.from("produtos").remove(oldPaths);
+      if (cleanupError) console.error("Falha ao remover imagens antigas da loja:", cleanupError.message);
+    }
 
     revalidatePath("/painel/loja");
     revalidatePath(`/loja/${tenant.slug}`);

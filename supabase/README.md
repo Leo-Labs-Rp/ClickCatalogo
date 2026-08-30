@@ -32,6 +32,8 @@ O arquivo `migrations/202608060004_asaas_customer_lookup.sql` adiciona o índice
 
 O arquivo `migrations/202608280005_expire_stale_signup_intents.sql` libera slugs de checkouts pendentes vencidos mesmo quando o evento `CHECKOUT_EXPIRED` não chega. Em bancos que já receberam o schema antes desta migration, execute somente este arquivo complementar no SQL Editor.
 
+O arquivo `migrations/202608290006_prelaunch_hardening.sql` fecha os pontos da auditoria pré-lançamento: uma loja por usuário, bloqueio de checkout duplicado por e-mail, reordenação atômica de categorias e rate limiting distribuído entre as Functions da Netlify. Em um banco que já recebeu o schema ou as cinco migrations anteriores, execute este arquivo por último.
+
 ## Aplicação
 
 Quando o projeto Supabase existir, vincule o CLI ao projeto e execute:
@@ -50,6 +52,8 @@ O fluxo com CLI é uma alternativa para ambientes já vinculados. Para o novo pr
 - A loja pública consulta uma função que omite `owner_user_id` e campos operacionais.
 - O caminho de upload deve começar por `produtos/{tenant_id}/`; as policies conferem se o usuário autenticado é dono desse tenant.
 - Produto e categoria usam uma chave estrangeira composta, impedindo vincular um produto à categoria de outra loja.
+- `api_rate_limits` não possui policy de leitura ou escrita; somente a `service_role` chama a RPC atômica e os IPs são armazenados como HMAC.
+- `owner_user_id` é único enquanto o painel não oferecer alternância entre várias lojas da mesma conta.
 
 Após aplicar a migração, gere os tipos oficiais do projeto e substitua `src/types/database.ts`:
 

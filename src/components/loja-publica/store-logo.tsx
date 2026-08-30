@@ -1,15 +1,19 @@
 import { Store } from "lucide-react";
-import Image from "next/image";
 
 import { cn } from "@/lib/utils/cn";
 
+import { CatalogImage } from "./catalog-image";
+
 export type StoreLogoProps = {
   className?: string;
+  eager?: boolean;
   logoUrl: string | null;
   storeName: string;
 };
 
-export function StoreLogo({ className, logoUrl, storeName }: StoreLogoProps) {
+export function StoreLogo({ className, eager = false, logoUrl, storeName }: StoreLogoProps) {
+  const fallback = <Store aria-hidden="true" className="size-6" strokeWidth={1.8} />;
+
   return (
     <div
       className={cn(
@@ -18,16 +22,17 @@ export function StoreLogo({ className, logoUrl, storeName }: StoreLogoProps) {
       )}
     >
       {logoUrl ? (
-        <Image
+        <CatalogImage
           alt={`Logo da ${storeName}`}
           className="object-cover"
+          fallback={fallback}
           fill
-          loading="lazy"
+          loading={eager ? "eager" : "lazy"}
           sizes="64px"
           src={logoUrl}
         />
       ) : (
-        <Store aria-hidden="true" className="size-6" strokeWidth={1.8} />
+        fallback
       )}
     </div>
   );

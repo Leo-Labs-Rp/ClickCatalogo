@@ -36,7 +36,7 @@ export function LegalPage({ children, description, title }: { children: ReactNod
               {description}
             </p>
             <p className="mt-3 text-xs font-medium text-brand-700">
-              Última atualização: 19 de julho de 2026
+              Última atualização: 29 de agosto de 2026
             </p>
           </div>
 

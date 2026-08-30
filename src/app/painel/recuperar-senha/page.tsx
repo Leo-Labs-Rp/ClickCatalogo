@@ -34,7 +34,7 @@ export default async function PasswordRecoveryPage({ searchParams }: RecoveryPag
             <span className="mb-3 grid size-11 place-items-center rounded-xl bg-brand-100 text-brand-700">
               <KeyRound aria-hidden="true" className="size-5" />
             </span>
-            <CardTitle className="text-2xl">Recupere seu acesso</CardTitle>
+            <CardTitle as="h1" className="text-2xl">Recupere seu acesso</CardTitle>
             <CardDescription>Enviaremos um link seguro para você escolher uma nova senha.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-5">

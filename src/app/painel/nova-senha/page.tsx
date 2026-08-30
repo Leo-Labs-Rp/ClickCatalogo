@@ -34,7 +34,7 @@ export default async function NewPasswordPage() {
             <span className="mb-3 grid size-11 place-items-center rounded-xl bg-brand-100 text-brand-700">
               <KeyRound aria-hidden="true" className="size-5" />
             </span>
-            <CardTitle className="text-2xl">Crie uma nova senha</CardTitle>
+            <CardTitle as="h1" className="text-2xl">Crie uma nova senha</CardTitle>
             <CardDescription>Escolha uma senha segura para voltar ao painel da sua loja.</CardDescription>
           </CardHeader>
           <CardContent>

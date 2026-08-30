@@ -1,8 +1,7 @@
 [build]
-  command = "npm run build"
+  command = "npm run verify"
   publish = ".next"
 
 [build.environment]
   NODE_VERSION = "22"
   NETLIFY_NEXT_SKEW_PROTECTION = "true"
-  NEXT_PUBLIC_SITE_URL = "https://clickcatalogo.netlify.app"

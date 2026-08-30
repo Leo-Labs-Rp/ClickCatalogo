@@ -12,7 +12,8 @@ where schemaname = 'public'
     'products',
     'subscriptions',
     'signup_intents',
-    'asaas_webhook_events'
+    'asaas_webhook_events',
+    'api_rate_limits'
   )
 order by tablename;
 
@@ -22,8 +23,11 @@ from information_schema.routines
 where routine_schema = 'public'
   and routine_name in (
     'expire_stale_signup_intents',
+    'consume_api_rate_limit',
+    'email_has_tenant',
     'get_public_catalog',
     'get_public_store_status',
+    'reorder_categories',
     'set_updated_at'
   )
 order by routine_name;

@@ -2,7 +2,6 @@
 
 import { ImageIcon, Package, Pencil, Plus, Power, Trash2, X } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 import { useState, useTransition } from "react";
 
 import { deleteProductAction, saveProductAction, toggleProductAction } from "@/app/painel/(app)/produtos/actions";
@@ -17,6 +16,7 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { formatCurrency } from "@/lib/format/currency";
 import { compressImageForUpload } from "@/lib/images/compress-upload";
+import { CatalogImage } from "@/components/loja-publica/catalog-image";
 
 type CategoryOption = { id: string; nome: string };
 export type ProductItem = { ativo: boolean; category_id: string; descricao: string | null; id: string; imagem_url: string | null; nome: string; preco: number; variacao_info: string | null };
@@ -90,7 +90,7 @@ export function ProductManager({ categories, initialProducts }: { categories: Ca
               <Field><FieldLabel htmlFor="nome">Nome</FieldLabel><Input defaultValue={editing?.nome} id="nome" maxLength={120} name="nome" placeholder="Ex.: Kit presenteável" required /></Field>
               <Field><FieldLabel htmlFor="categoryId">Categoria</FieldLabel><Select defaultValue={editing?.category_id ?? categories[0]?.id} id="categoryId" name="categoryId" required>{categories.map((category) => <option key={category.id} value={category.id}>{category.nome}</option>)}</Select></Field>
               <Field><FieldLabel htmlFor="preco">Preço</FieldLabel><Input defaultValue={editing?.preco.toFixed(2).replace(".", ",")} id="preco" inputMode="decimal" name="preco" placeholder="27,00" required /></Field>
-              <Field><FieldLabel htmlFor="imagem">Imagem</FieldLabel><Input accept="image/jpeg,image/png,image/webp" id="imagem" name="imagem" type="file" /><FieldDescription>JPG, PNG ou WebP. Otimizamos para WebP em até 1200 px antes do envio.</FieldDescription></Field>
+              <Field><FieldLabel htmlFor="imagem">Imagem</FieldLabel><Input accept="image/jpeg,image/png,image/webp" id="imagem" name="imagem" type="file" />{editing?.imagem_url ? <label className="flex min-h-11 items-center gap-2 text-sm"><input className="size-4 accent-[var(--brand-700)]" name="removeImagem" type="checkbox" value="true" />Remover a imagem atual ao salvar</label> : null}<FieldDescription>JPG, PNG ou WebP. Otimizamos para WebP em até 1200 px antes do envio.</FieldDescription></Field>
             </div>
             <Field><FieldLabel htmlFor="descricao">Descrição</FieldLabel><Textarea defaultValue={editing?.descricao ?? ""} id="descricao" maxLength={1000} name="descricao" placeholder="Conte o que torna este produto especial." rows={4} /></Field>
             <Field><FieldLabel htmlFor="variacaoInfo">Variações</FieldLabel><Input defaultValue={editing?.variacao_info ?? ""} id="variacaoInfo" maxLength={300} name="variacaoInfo" placeholder="Ex.: tamanhos P, M e G; cores sob consulta" /><FieldDescription>Campo livre para sabores, tamanhos, cores ou outras opções.</FieldDescription></Field>
@@ -106,7 +106,7 @@ export function ProductManager({ categories, initialProducts }: { categories: Ca
           {products.map((product) => (
             <Card className="grid min-w-0 grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1 p-3 sm:flex sm:gap-4 sm:p-4" key={product.id}>
               <div className="relative grid size-14 shrink-0 place-items-center overflow-hidden rounded-lg bg-[var(--app-surface-muted)] sm:size-16">
-                {product.imagem_url ? <Image alt={`Imagem de ${product.nome}`} className="object-cover" fill loading="lazy" sizes="64px" src={product.imagem_url} /> : <ImageIcon aria-hidden="true" className="size-5 text-[var(--app-foreground-muted)]" />}
+                {product.imagem_url ? <CatalogImage alt={`Imagem de ${product.nome}`} className="object-cover" fallback={<ImageIcon aria-hidden="true" className="size-5 text-[var(--app-foreground-muted)]" />} fill loading="lazy" sizes="64px" src={product.imagem_url} /> : <ImageIcon aria-hidden="true" className="size-5 text-[var(--app-foreground-muted)]" />}
               </div>
               <div className="min-w-0 flex-1"><div className="flex min-w-0 flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-2"><p className="max-w-full truncate font-semibold">{product.nome}</p><Badge variant={product.ativo ? "success" : "neutral"}>{product.ativo ? "Publicado" : "Oculto"}</Badge></div><p className="mt-1 text-sm font-semibold text-brand-700">{formatCurrency(product.preco)}</p></div>
               <div className="col-start-2 flex shrink-0 gap-1 sm:col-auto">

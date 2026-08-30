@@ -9,7 +9,7 @@ import { tenantSlugSchema } from "@/lib/tenants/slug";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-  const rateLimitResponse = enforceRateLimit(request, PUBLIC_API_RATE_LIMITS.slugAvailability);
+  const rateLimitResponse = await enforceRateLimit(request, PUBLIC_API_RATE_LIMITS.slugAvailability);
   if (rateLimitResponse) return rateLimitResponse;
 
   const parsed = tenantSlugSchema.safeParse(request.nextUrl.searchParams.get("slug") ?? "");

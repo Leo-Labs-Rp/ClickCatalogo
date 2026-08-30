@@ -37,7 +37,7 @@ export default async function LoginPage() {
               </span>
               ClickCatálogo
             </div>
-            <CardTitle className="text-2xl">Seu catálogo, num clique</CardTitle>
+            <CardTitle as="h1" className="text-2xl">Seu catálogo, num clique</CardTitle>
             <CardDescription>Entre para editar sua loja, categorias e produtos.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-5">

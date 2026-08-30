@@ -1,0 +1,32 @@
+name: Qualidade
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  cancel-in-progress: true
+  group: quality-${{ github.ref }}
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          cache: npm
+          node-version: 22
+      - name: Instalar dependências
+        run: npm ci
+      - name: Validar código, tipos, contraste e build
+        run: npm run verify
+      - name: Auditar dependências de produção
+        run: npm audit --omit=dev

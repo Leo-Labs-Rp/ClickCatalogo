@@ -37,10 +37,10 @@ Preencha `.env.local` quando as credenciais estiverem disponíveis. Nunca envie 
 
 ## Ativação das integrações
 
-1. Em um Supabase novo, execute somente `supabase/schema.sql`.
+1. Em um Supabase novo, execute somente `supabase/schema.sql`. Em um banco já criado, aplique as migrations posteriores na ordem documentada em `supabase/README.md`.
 2. Copie `.env.example` para `.env.local` e informe as chaves.
 3. No Supabase Auth, adicione `http://localhost:3000/auth/callback` às URLs permitidas em desenvolvimento.
-4. Para recuperação de senha em produção, verifique `auth.clickcatalogo.com` no Resend e conecte a integração ao SMTP do Supabase Auth; nenhuma variável Resend é usada pela aplicação.
+4. Para recuperação de senha em produção, verifique `auth.clickcatalogo.com` no Resend, conecte o SMTP ao Supabase Auth e aplique o modelo em `docs/supabase-email-templates/recovery.html`; nenhuma variável Resend é usada pela aplicação.
 5. No Asaas Sandbox, cadastre `https://SEU-DOMINIO/api/webhooks/asaas` e use exatamente o mesmo token de `ASAAS_WEBHOOK_TOKEN`.
 6. Para testar webhooks localmente, use uma URL HTTPS pública de túnel e atualize `NEXT_PUBLIC_SITE_URL`.
 7. Para publicar, conecte o repositório à Netlify; `netlify.toml` contém as configurações de build.
@@ -52,11 +52,12 @@ Os números de WhatsApp são exibidos como `+55 (11) 99999-9999` nos formulário
 ## Verificações
 
 ```bash
-npm run check
-npm run build
+npm run verify
+npm audit --omit=dev
+npm run audit:live
 ```
 
-`npm run check` executa lint, TypeScript e a validação automática de contraste AA das seis paletas.
+`npm run verify` executa lint, TypeScript, contraste AA das seis paletas e o build. `audit:live` é somente leitura e confere integridade agregada do Supabase usando o `.env.local`, sem imprimir chaves nem dados pessoais.
 
 ## Design system
 

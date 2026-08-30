@@ -8,7 +8,7 @@ Relatório consolidado em **12 de agosto de 2026** e revisado em **29 de agosto 
 - schema consolidado e migrations versionadas em `supabase/`;
 - OpenAPI do projeto Supabase real, consultado em modo somente leitura para confirmar colunas, tipos, obrigatoriedade, defaults e relacionamentos expostos;
 - dados agregados do Supabase real, sem registrar e-mails, IDs ou chaves neste arquivo;
-- respostas HTTP do deploy anterior na Vercel para as rotas públicas; o novo deploy na Netlify ainda precisa ser criado e validado;
+- respostas HTTP e inspeção visual do deploy ativo, incluindo landing, cadastro, painel, catálogo, imagens e carrinho;
 - validação funcional e responsiva local em 375 px, 768 px e 1440 px;
 - `npm run check`, `npm run build` e conferência de diff executados no estado final.
 
@@ -32,11 +32,11 @@ As categorias receberam refinamento visual de pills, títulos, indicador lateral
 | `/cadastro` | Implementada no Sandbox | Formulário em duas etapas, validação com Zod, consulta real de slug, preview com os dados digitados e abertura do checkout recorrente do Asaas. |
 | `/cadastro/sucesso?ref=...` | Implementada | Consulta a intenção real a cada 2 segundos, mostra a loja provisionada, seleciona o tenant correspondente ao pagamento, permite configurar a senha uma única vez e tenta entrar automaticamente no painel. |
 | `/painel` | Implementada | Login real por e-mail e senha via Supabase Auth, link de recuperação e demonstração separada/somente leitura quando `DEMO_ACCESS_ENABLED` não é `false`. |
-| `/painel/recuperar-senha` | Implementada | Solicita recuperação pelo Supabase Auth sem revelar se o e-mail possui conta. Depende de SMTP próprio no Supabase para uso real. |
+| `/painel/recuperar-senha` | Implementada e testada | Solicita recuperação pelo Supabase Auth sem revelar se o e-mail possui conta. SMTP Resend, recebimento, callback e troca de senha foram validados; o template visual em português está versionado para aplicação manual. |
 | `/painel/nova-senha` | Implementada | Exige sessão válida criada pelo link de recuperação e atualiza a senha com `supabase.auth.updateUser`. |
 | `/painel/loja` | Implementada | Lê e atualiza dados reais do tenant; edita nome, descrição, WhatsApp, Instagram, endereço e tema; envia logo/banner ao Storage; comprime imagens no navegador; mostra preview reutilizando a loja pública. |
-| `/painel/categorias` | Implementada | CRUD real, contagem de produtos, reordenação por arrastar ou setas, confirmação antes da exclusão em cascata e aviso não bloqueante ao criar a 16ª categoria. |
-| `/painel/produtos` | Implementada | CRUD real, upload e substituição de imagem, compressão para WebP, ativar/ocultar e remoção do arquivo antigo no Storage. |
+| `/painel/categorias` | Implementada | CRUD real, reordenação atômica por arrastar ou setas, bloqueio de exclusão quando existem produtos vinculados e aviso não bloqueante ao criar a 16ª categoria. |
+| `/painel/produtos` | Implementada | CRUD real, upload, substituição ou remoção de imagem, compressão para WebP, ativar/ocultar e limpeza do arquivo antigo no Storage. |
 | `/painel/assinatura` | Implementada | Lê status, valor e próxima cobrança reais, exibe a última fatura quando disponível e permite cancelar a recorrência com confirmação forte. A loja é pausada, os dados são preservados e a tela confirma o resultado sem depender do webhook. |
 | `/loja/[slug]` | Implementada | Catálogo real via RPC pública segura, ISR de 60 segundos, `next/image`, status ativo/inadimplente/cancelado, busca client-side, categorias, paginação de 20 produtos por categoria, pedido individual e carrinho client-side com pedido consolidado pelo WhatsApp. |
 | `/termos` | Implementada | Conteúdo real, não é página vazia. |
@@ -287,7 +287,7 @@ Não há Redux, Zustand, Jotai, Context global de compras, biblioteca de modal/d
 
 ### Funcionais/técnicas
 
-1. **SMTP de Produção:** o fluxo de recuperação está implementado, mas o Supabase precisa de SMTP próprio e URLs permitidas configuradas antes do lançamento.
+1. **E-mail transacional:** SMTP Resend, URLs e recuperação foram testados. Antes do lançamento, aplicar o template em português versionado e validar a entrega também no Outlook.
 2. **Múltiplas lojas por usuário:** o backend aceita mais de um tenant por proprietário e seleciona o tenant do pagamento ou o mais recente, mas ainda não existe seletor de loja no painel.
 3. **Gestão financeira futura:** o link exibido é a última fatura (`invoiceUrl`). Troca de cartão e upgrade/downgrade continuam fora do escopo; o cancelamento já é self-service.
 4. **Testes automatizados:** não há suíte unitária, de integração ou E2E. A validação atual inclui ESLint, TypeScript, contraste, build e teste funcional manual nas larguras principais.
@@ -333,7 +333,7 @@ O carrinho e o polimento visual solicitado foram concluídos. Contadores nas cat
 
 1. **Recuperação self-service:** implementada com `resetPasswordForEmail`, callback PKCE e `updateUser`. O link no login, as telas responsivas, a rejeição de acesso sem sessão e o redirecionamento de link inválido foram testados localmente. A entrega real do e-mail depende da configuração manual de SMTP próprio e Redirect URLs no Supabase.
 2. **Asaas em Produção:** o código foi auditado. A chave `$aact_prod_` seleciona automaticamente `https://api.asaas.com/v3`; callbacks usam `NEXT_PUBLIC_SITE_URL` e não há dados de Sandbox fixados no checkout. A primeira cobrança real permanece um teste manual obrigatório e está roteirizada no `SETUP.md`.
-3. **Rate limiting:** implementado em memória e por IP nos quatro endpoints solicitados. O teste local de `POST /api/cadastro/definir-senha` retornou dez respostas de validação e bloqueou a 11ª com HTTP `429` e `Retry-After: 900`.
+3. **Rate limiting:** implementado por IP em RPC atômica no Supabase, compartilhada entre Functions da Netlify, com HMAC em vez do IP bruto e fallback local. Protege checkout, senha inicial, slug, status e webhook; requer a migration `202608290006_prelaunch_hardening.sql`.
 
 ### P1 — recomendação
 
@@ -355,7 +355,7 @@ O carrinho e o polimento visual solicitado foram concluídos. Contadores nas cat
 | # | Item auditado | Estado verificado | Ação antes do lançamento |
 |---|---|---|---|
 | 1 | Segredos no frontend | **Coberto.** O build foi pesquisado pelos valores reais e pelos nomes de `SUPABASE_SERVICE_ROLE_KEY`, `ASAAS_API_KEY`, `ASAAS_WEBHOOK_TOKEN` e `RESEND_API_KEY`: nenhum apareceu em `.next/static`. Os três segredos configurados também não aparecem em arquivo versionado; `.env.local` está ignorado. `RESEND_API_KEY` não é usada pelo projeto. | Manter as variáveis sem prefixo `NEXT_PUBLIC_` somente na Netlify/servidor. Rotacionar imediatamente qualquer segredo que um dia seja versionado ou compartilhado fora do ambiente seguro. |
-| 2 | Origem, autenticação e tenant | **Coberto para o escopo atual.** Checkout e criação inicial de senha rejeitam origem diferente com `403`; o webhook rejeita ausência do token com `401`; entradas usam Zod e rate limit. Server Actions do painel exigem sessão e derivam o tenant de `requireTenant`, nunca do corpo enviado pelo navegador. Server Actions também recebem a proteção CSRF de origem do Next.js. GETs de slug/status são públicos por projeto e retornam dados mínimos. | Para escala maior, trocar o rate limit em memória por armazenamento distribuído. |
+| 2 | Origem, autenticação e tenant | **Coberto para o escopo atual.** Checkout e criação inicial de senha exigem origem válida; webhook valida token antes do rate limit; entradas usam Zod e limitador distribuído. Server Actions exigem sessão e derivam o tenant de `requireTenant`. | Aplicar a migration de hardening antes do novo deploy. |
 | 3 | Logs sensíveis | **Coberto.** Há somente três `console.error` de produção: falha genérica do checkout, ID/motivo limitado do evento e sincronização local pendente. Nenhum log grava senha, payload de checkout, token ou chave. | Evitar registrar objetos completos de request, headers, usuário ou webhook ao adicionar observabilidade. |
 | 4 | Falha/reentrega do webhook | **Coberto com ressalva operacional.** O Asaas trabalha com entrega `at least once`, tenta novamente falhas de forma progressiva, interrompe a fila após 15 falhas consecutivas e mantém eventos por até 14 dias. O endpoint persiste `event.id`, responde erro quando o processamento falha e ignora somente eventos já concluídos. Uma reentrega que encontra processamento recente agora recebe `409`, não um falso `200`, evitando perder o evento se a primeira execução tiver sido interrompida. | Manter envio sequencial, e-mail de alerta e monitorar **Asaas → Integrações → Logs de Webhooks**. Uma fila assíncrona externa é uma evolução recomendada se o volume crescer, pois hoje o processamento ainda ocorre antes do `200`. Referência: [FAQ oficial de Webhooks](https://docs.asaas.com/docs/faq-de-webhooks). |
 | 5 | Timeout após pagamento | **Coberto.** Cada consulta de status tem timeout de 8 segundos; a tela repete a verificação, explica o atraso e, ao esgotar o ciclo, oferece **Verificar novamente**. O cliente é orientado a guardar a própria URL `?ref=...`, que recupera loja e criação de senha depois que o webhook atrasado terminar, sem novo pagamento ou atendimento. | Monitorar webhooks; não há ação de código pendente. |
@@ -363,7 +363,7 @@ O carrinho e o polimento visual solicitado foram concluídos. Contadores nas cat
 | 7 | Valores extremos | **Coberto.** Nome aceita no máximo 120 caracteres no input, Zod e constraint; preço com mais de duas casas agora é rejeitado com mensagem clara; vazios opcionais viram `null`. O bucket real aceitou um arquivo de **2 MB exatos**, rejeitou **2 MB + 1 byte** e o objeto temporário aceito foi removido logo após o teste. | Nenhuma. |
 | 8 | Excluir categoria com produtos | **Coberto e intencional.** A FK do banco usa `on delete restrict`. A aplicação conta os produtos e pede confirmação explícita; somente depois apaga produtos, arquivos e categoria. Se o usuário recusar, nada é excluído. A contagem é usada apenas na confirmação e não fica visível na lista de categorias. | Nenhuma. |
 | 9 | Painel administrativo global | **Não existe.** O painel atual é exclusivo do lojista; para uma visão global ainda é necessário consultar o Supabase. | **Decisão do administrador:** definir se uma tela interna de tenants/status entra no curto prazo. Não bloqueia o primeiro lançamento controlado. |
-| 10 | E-mails reais | **Pendente.** Não existe e-mail de boas-vindas/compra nem integração Resend. A recuperação usa o e-mail do Supabase Auth, mas SMTP real e remetente comum não foram validados em produção. Portanto não é possível confirmar hoje que os dois fluxos usam o mesmo remetente. | **Obrigatória:** configurar SMTP próprio no Supabase e testar recuperação real. Depois decidir provedor e implementar boas-vindas/compra com o mesmo domínio/remetente, se esse e-mail fizer parte do lançamento. |
+| 10 | E-mails reais | **Recuperação validada.** Supabase Auth envia pelo SMTP Resend em `auth.clickcatalogo.com`; link e redefinição funcionam. O e-mail observado ainda usava o texto padrão em inglês e caiu no spam. | Aplicar o template em português versionado, marcar testes como “Não é spam” e validar Gmail/Outlook. Boas-vindas/compra continuam fora do escopo atual. |
 | 11 | Pico de 100 acessos | **Coberto para carga leve.** No build de produção local conectado ao Supabase, um pico frio teve **100/100 HTTP 200**, total de 1,19 s e p95 de 1,14 s; uma segunda rodada teve **100/100 HTTP 200**, total de 0,84 s e p95 de 0,79 s. `unstable_cache` e ISR de 60 s impedem uma consulta RPC por visitante durante a janela. | O resultado valida o cenário moderado, mas não substitui teste distribuído na Netlify. Monitorar funções e Supabase no primeiro tráfego real; considerar cache remoto apenas se o volume crescer muito. |
 
 ### Cancelamento self-service: verificação desta rodada
@@ -376,7 +376,7 @@ O carrinho e o polimento visual solicitado foram concluídos. Contadores nas cat
 
 ## Conclusão
 
-O catálogo público suporta pedidos individuais e com vários produtos; autenticação, proteção contra abuso, recuperação pós-pagamento e cancelamento self-service estão implementados. Antes de aceitar o primeiro cliente pagante real, ainda são obrigatórios: configurar/testar SMTP real, cadastrar e observar o webhook na conta Asaas de Produção, concluir um pagamento real controlado e executar o cancelamento dirigido de uma assinatura escolhida no Sandbox.
+O catálogo público suporta pedidos individuais e com vários produtos; autenticação, proteção contra abuso, recuperação pós-pagamento e cancelamento self-service estão implementados. Antes do primeiro cliente real ainda são obrigatórios: aplicar a migration de hardening, apontar o domínio final para a Netlify, aplicar/testar o template de e-mail, configurar o Asaas de Produção, concluir um pagamento real controlado e executar um cancelamento controlado.
 
 ## Retomada em 28/08/2026
 
@@ -389,8 +389,8 @@ O catálogo público suporta pedidos individuais e com vários produtos; autenti
 - foi adicionado `netlify.toml` com build Next.js, Node.js 22 e proteção entre deploys;
 - o requisito local foi alinhado para Node.js 22 ou superior, compatível com a versão atual do cliente Supabase;
 - `SETUP.md` e `CONFIGURACAO_AMBIENTE.md` agora descrevem o novo Supabase e a Netlify;
-- `.env.local` já aponta para o novo Supabase e para o ambiente de teste `https://clickcatalogo.netlify.app`;
-- o novo deploy da Netlify, os webhooks, o SMTP e o fluxo de Produção ainda não foram validados.
+- `.env.local` já aponta para o novo Supabase e para `https://clickcatalogo.com`;
+- o deploy da Netlify, o webhook Sandbox, o SMTP, a recuperação de senha, o DNS e o HTTPS do domínio final foram validados; o fluxo Asaas de Produção ainda não foi validado.
 
 ## Retomada em 29/08/2026
 
@@ -400,5 +400,5 @@ O catálogo público suporta pedidos individuais e com vários produtos; autenti
 - disponibilidade de slug, checkout e consulta de status executam a expiração defensiva antes de consultar reservas;
 - `.env.example` voltou a usar placeholders, `.env.local` permanece ignorado e a varredura não encontrou segredo real no estado versionado;
 - respostas agora recebem CSP compatível com o Supabase, proteção contra iframe, `nosniff`, política de referência e restrições de permissões; os headers foram confirmados por uma requisição ao build local;
-- Resend foi escolhido como SMTP do Supabase Auth e o procedimento completo foi documentado no `SETUP.md`; conexão, DNS e teste real de recuperação continuam como ações manuais pendentes;
-- HSTS permanece deliberadamente pendente até `clickcatalogo.com` estar validado em HTTPS na Netlify.
+- Resend está conectado ao Supabase Auth, DNS verificado e recuperação real validada; resta aplicar o template em português e melhorar a reputação de entrega;
+- `clickcatalogo.com` e `www.clickcatalogo.com` apontam para a Netlify, possuem certificado Let's Encrypt válido e o `www` redireciona para o domínio raiz.

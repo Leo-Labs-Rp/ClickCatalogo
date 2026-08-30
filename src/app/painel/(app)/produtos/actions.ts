@@ -60,6 +60,7 @@ export async function saveProductAction(formData: FormData): Promise<ActionResul
 
   const fileEntry = formData.get("imagem");
   const file = fileEntry instanceof File && fileEntry.size > 0 ? fileEntry : null;
+  const removeImage = formData.get("removeImagem") === "true";
   if (file && (!ALLOWED_TYPES.has(file.type) || file.size > MAX_FILE_SIZE)) {
     return { error: "A imagem deve ser JPG, PNG ou WebP e ter no máximo 2 MB.", ok: false };
   }
@@ -80,7 +81,7 @@ export async function saveProductAction(formData: FormData): Promise<ActionResul
       previousImageUrl = product.imagem_url;
     }
 
-    let imageUrl = previousImageUrl;
+    let imageUrl = removeImage ? null : previousImageUrl;
     if (file) {
       uploadedPath = `${tenant.id}/${crypto.randomUUID()}.${extensionFor(file)}`;
       const { error: uploadError } = await supabase.storage.from("produtos").upload(uploadedPath, file, { cacheControl: "3600", contentType: file.type, upsert: false });
@@ -109,7 +110,10 @@ export async function saveProductAction(formData: FormData): Promise<ActionResul
     }
 
     const previousPath = storagePathFromUrl(previousImageUrl);
-    if (uploadedPath && previousPath) await supabase.storage.from("produtos").remove([previousPath]);
+    if ((uploadedPath || removeImage) && previousPath) {
+      const { error: cleanupError } = await supabase.storage.from("produtos").remove([previousPath]);
+      if (cleanupError) console.error("Falha ao remover imagem antiga do produto:", cleanupError.message);
+    }
 
     revalidatePath("/painel/produtos");
     revalidatePath("/painel/loja");
@@ -153,7 +157,10 @@ export async function deleteProductAction(id: string): Promise<ActionResult> {
     const { error } = await supabase.from("products").delete().eq("id", id).eq("tenant_id", tenant.id);
     if (error) throw error;
     const path = storagePathFromUrl(product.imagem_url);
-    if (path) await supabase.storage.from("produtos").remove([path]);
+    if (path) {
+      const { error: cleanupError } = await supabase.storage.from("produtos").remove([path]);
+      if (cleanupError) console.error("Falha ao remover imagem do produto excluído:", cleanupError.message);
+    }
     revalidatePath("/painel/produtos");
     revalidatePath(`/loja/${tenant.slug}`);
     return { ok: true };

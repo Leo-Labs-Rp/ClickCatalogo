@@ -19,6 +19,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   if (store.kind !== "available") return { title: "Loja indisponível", robots: { index: false, follow: false } };
   const description = store.catalog.descricao_curta ?? `Catálogo digital de ${store.catalog.nome_loja}.`;
   return {
+    alternates: {
+      canonical: `/loja/${encodeURIComponent(slug)}`,
+    },
     description,
     openGraph: {
       description,

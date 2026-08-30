@@ -1,12 +1,12 @@
 "use client";
 
-import { ExternalLink, ImageIcon, Save, Upload } from "lucide-react";
-import Image from "next/image";
+import { ExternalLink, ImageIcon, Save, Trash2, Upload } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 
 import { updateStoreAction } from "@/app/painel/(app)/loja/actions";
 import { StorePreview } from "@/components/loja-publica/store-preview";
+import { CatalogImage } from "@/components/loja-publica/catalog-image";
 import { ThemePicker } from "@/components/loja-publica/theme-picker";
 import { Alert } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -26,6 +26,7 @@ type StoreImageKind = "banner" | "logo";
 type StoreImageState = {
   fileName: string | null;
   previewUrl: string | null;
+  remove: boolean;
   savedUrl: string | null;
 };
 
@@ -35,6 +36,7 @@ function StoreImageField({
   kind,
   label,
   onChange,
+  onRemove,
   state,
 }: {
   description: string;
@@ -42,11 +44,14 @@ function StoreImageField({
   kind: StoreImageKind;
   label: string;
   onChange: (file: File | null) => void;
+  onRemove: () => void;
   state: StoreImageState;
 }) {
   const hasImage = Boolean(state.previewUrl);
   const status = state.fileName
     ? "Nova imagem selecionada. Clique em “Salvar alterações” para publicar."
+    : state.remove
+      ? "A imagem atual será removida quando você salvar."
     : state.savedUrl
       ? "Esta imagem já está salva e aparece na sua loja."
       : "Você ainda não adicionou esta imagem.";
@@ -63,13 +68,13 @@ function StoreImageField({
           kind === "logo" ? "aspect-square w-[5.5rem] rounded-full" : "aspect-[21/9] w-full rounded-md",
         )}>
           {state.previewUrl ? (
-            <Image
+            <CatalogImage
               alt={`${label} ${state.fileName ? "selecionada" : "atual"}`}
               className="object-cover"
+              fallback={<span className="absolute inset-0 grid place-items-center text-[var(--app-foreground-muted)]"><ImageIcon aria-hidden="true" className="size-6" /></span>}
               fill
               sizes={kind === "logo" ? "88px" : "(max-width: 639px) 100vw, 160px"}
               src={state.previewUrl}
-              unoptimized={state.previewUrl.startsWith("blob:")}
             />
           ) : (
             <span className="absolute inset-0 grid place-items-center text-[var(--app-foreground-muted)]">
@@ -96,6 +101,13 @@ function StoreImageField({
             onChange={(event) => onChange(event.target.files?.[0] ?? null)}
             type="file"
           />
+          <input name={`remove-${kind}`} type="hidden" value={state.remove ? "true" : "false"} />
+          {hasImage ? (
+            <Button className="w-fit" onClick={onRemove} size="sm" type="button" variant="ghost">
+              <Trash2 aria-hidden="true" />
+              Remover imagem
+            </Button>
+          ) : null}
           <p aria-live="polite" className="text-xs leading-5 text-[var(--app-foreground-muted)]">{status}</p>
           {state.fileName ? <p className="truncate text-xs font-medium" title={state.fileName}>{state.fileName}</p> : null}
         </div>
@@ -111,8 +123,8 @@ export function StoreSettingsForm({ catalog }: { catalog: PublicCatalog }) {
   const [description, setDescription] = useState(catalog.descricao_curta ?? "");
   const [whatsapp, setWhatsapp] = useState(() => normalizeBrazilWhatsAppInput(catalog.whatsapp));
   const [instagram, setInstagram] = useState(() => normalizeInstagramUsername(catalog.instagram ?? ""));
-  const [logoImage, setLogoImage] = useState<StoreImageState>({ fileName: null, previewUrl: catalog.logo_url, savedUrl: catalog.logo_url });
-  const [bannerImage, setBannerImage] = useState<StoreImageState>({ fileName: null, previewUrl: catalog.banner_url, savedUrl: catalog.banner_url });
+  const [logoImage, setLogoImage] = useState<StoreImageState>({ fileName: null, previewUrl: catalog.logo_url, remove: false, savedUrl: catalog.logo_url });
+  const [bannerImage, setBannerImage] = useState<StoreImageState>({ fileName: null, previewUrl: catalog.banner_url, remove: false, savedUrl: catalog.banner_url });
   const [message, setMessage] = useState<{ text: string; type: "danger" | "success" } | null>(null);
   const [isPending, startTransition] = useTransition();
   const objectUrls = useRef<Partial<Record<StoreImageKind, string>>>({});
@@ -129,20 +141,29 @@ export function StoreSettingsForm({ catalog }: { catalog: PublicCatalog }) {
     setImage((current) => {
       if (!file) {
         delete objectUrls.current[kind];
-        return { ...current, fileName: null, previewUrl: current.savedUrl };
+        return { ...current, fileName: null, previewUrl: current.savedUrl, remove: false };
       }
 
       const previewUrl = URL.createObjectURL(file);
       objectUrls.current[kind] = previewUrl;
-      return { ...current, fileName: file.name, previewUrl };
+      return { ...current, fileName: file.name, previewUrl, remove: false };
     });
+  }
+
+  function removeImage(kind: StoreImageKind) {
+    const previousObjectUrl = objectUrls.current[kind];
+    if (previousObjectUrl) URL.revokeObjectURL(previousObjectUrl);
+    delete objectUrls.current[kind];
+
+    const setImage = kind === "logo" ? setLogoImage : setBannerImage;
+    setImage((current) => ({ ...current, fileName: null, previewUrl: null, remove: true }));
   }
 
   function markImagesAsSaved(data: { bannerUrl: string | null; logoUrl: string | null }) {
     Object.values(objectUrls.current).forEach((url) => URL.revokeObjectURL(url));
     objectUrls.current = {};
-    setLogoImage({ fileName: null, previewUrl: data.logoUrl, savedUrl: data.logoUrl });
-    setBannerImage({ fileName: null, previewUrl: data.bannerUrl, savedUrl: data.bannerUrl });
+    setLogoImage({ fileName: null, previewUrl: data.logoUrl, remove: false, savedUrl: data.logoUrl });
+    setBannerImage({ fileName: null, previewUrl: data.bannerUrl, remove: false, savedUrl: data.bannerUrl });
   }
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -204,8 +225,8 @@ export function StoreSettingsForm({ catalog }: { catalog: PublicCatalog }) {
           {message ? <Alert title={message.text} variant={message.type} /> : null}
           <div className="grid gap-4 sm:grid-cols-2">
             <Field className="sm:col-span-2"><FieldLabel htmlFor="nomeLoja">Nome da loja</FieldLabel><Input id="nomeLoja" maxLength={100} name="nomeLoja" onChange={(event) => setName(event.target.value)} required value={name} /></Field>
-            <StoreImageField description="Escolha uma imagem quadrada para representar sua loja." id="logo" kind="logo" label="Logo da loja" onChange={(file) => selectImage("logo", file)} state={logoImage} />
-            <StoreImageField description="Escolha uma imagem larga para o topo da loja. Mantenha textos e elementos importantes no centro, pois as laterais podem ser recortadas em algumas telas." id="banner" kind="banner" label="Banner da loja" onChange={(file) => selectImage("banner", file)} state={bannerImage} />
+            <StoreImageField description="Escolha uma imagem quadrada para representar sua loja." id="logo" kind="logo" label="Logo da loja" onChange={(file) => selectImage("logo", file)} onRemove={() => removeImage("logo")} state={logoImage} />
+            <StoreImageField description="Escolha uma imagem larga para o topo da loja. Mantenha textos e elementos importantes no centro, pois as laterais podem ser recortadas em algumas telas." id="banner" kind="banner" label="Banner da loja" onChange={(file) => selectImage("banner", file)} onRemove={() => removeImage("banner")} state={bannerImage} />
             <Field className="sm:col-span-2"><FieldLabel htmlFor="descricaoCurta">Descrição curta</FieldLabel><Textarea id="descricaoCurta" maxLength={180} name="descricaoCurta" onChange={(event) => setDescription(event.target.value)} placeholder="Conte em uma frase o que sua loja oferece." rows={3} value={description} /></Field>
             <Field><FieldLabel htmlFor="whatsapp">WhatsApp</FieldLabel><Input autoComplete="tel" id="whatsapp" inputMode="tel" maxLength={19} name="whatsapp" onChange={(event) => setWhatsapp(normalizeBrazilWhatsAppInput(event.target.value))} placeholder="+55 (11) 99999-9999" required type="tel" value={formatBrazilWhatsApp(whatsapp)} /><FieldDescription>Digite o número completo com 55 e o DDD. Exemplo: +55 (11) 99999-9999.</FieldDescription></Field>
             <Field>
@@ -231,7 +252,7 @@ export function StoreSettingsForm({ catalog }: { catalog: PublicCatalog }) {
           </div>
 
           <div><p className="mb-3 text-sm font-semibold">Tema da loja</p><input name="tema" type="hidden" value={theme} /><ThemePicker onValueChange={setTheme} value={theme} /></div>
-          <div className="flex flex-wrap gap-2"><Button disabled={isPending} type="submit"><Save aria-hidden="true" />{isPending ? "Publicando..." : "Salvar alterações"}</Button><Link className={buttonVariants({ variant: "secondary" })} href={`/loja/${catalog.slug}`} target="_blank"><ExternalLink aria-hidden="true" />Abrir loja</Link></div>
+          <div className="flex flex-wrap gap-2"><Button disabled={isPending} type="submit"><Save aria-hidden="true" />{isPending ? "Publicando..." : "Salvar alterações"}</Button><Link className={buttonVariants({ variant: "secondary" })} href={`/loja/${catalog.slug}`} rel="noreferrer" target="_blank"><ExternalLink aria-hidden="true" />Abrir loja</Link></div>
         </form>
       </Card>
 

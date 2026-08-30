@@ -4,11 +4,15 @@ import { z } from "zod";
 import { ACTIVE_TENANT_COOKIE_MAX_AGE, ACTIVE_TENANT_COOKIE_NAME } from "@/lib/auth/tenant-cookie";
 import { isSupabaseConfigured } from "@/lib/env/public";
 import { expireStaleSignupIntents } from "@/lib/signup/intents";
+import { enforceRateLimit, PUBLIC_API_RATE_LIMITS } from "@/lib/security/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
+  const rateLimitResponse = await enforceRateLimit(request, PUBLIC_API_RATE_LIMITS.signupStatus);
+  if (rateLimitResponse) return rateLimitResponse;
+
   const ref = request.nextUrl.searchParams.get("ref") ?? "";
   if (!z.uuid().safeParse(ref).success) return NextResponse.json({ error: "Referência inválida." }, { status: 400 });
   if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) return NextResponse.json({ configured: false, status: "pendente" }, { status: 503 });

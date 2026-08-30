@@ -1,10 +1,11 @@
 import { ImageIcon, MessageCircle, Minus, Plus, ShoppingCart } from "lucide-react";
-import Image from "next/image";
 
 import { Button, buttonVariants } from "@/components/ui";
 import { formatCurrency } from "@/lib/format/currency";
 import { createWhatsAppUrl } from "@/lib/whatsapp/url";
 import type { CatalogProduct } from "@/types/catalog";
+
+import { CatalogImage } from "./catalog-image";
 
 export type ProductCardProps = {
   cartQuantity?: number;
@@ -20,26 +21,30 @@ export function ProductCard({ cartQuantity = 0, onAdd, onDecrement, product, sto
     whatsapp,
     `Olá! Tenho interesse no produto “${product.nome}” da ${storeName}.`,
   );
+  const imageFallback = (
+    <div className="grid h-full w-full place-items-center bg-[color-mix(in_srgb,var(--cor-imagem-fundo)_86%,var(--cor-acao))] text-[var(--cor-primaria)]">
+      <span className="grid size-14 place-items-center rounded-full border border-[color-mix(in_srgb,var(--cor-borda)_70%,var(--cor-acao))] bg-[color-mix(in_srgb,var(--cor-superficie)_82%,var(--cor-acao))]">
+        <ImageIcon aria-hidden="true" className="size-7 opacity-75" strokeWidth={1.5} />
+      </span>
+      <span className="sr-only">Produto sem imagem</span>
+    </div>
+  );
 
   return (
     <article className="group @container/product flex w-full min-w-0 max-w-none self-stretch flex-col overflow-hidden rounded-[var(--radius-card)] border border-[var(--cor-borda)] bg-[var(--cor-superficie)] shadow-[var(--shadow-elevation)]">
       <div className="relative aspect-square w-full overflow-hidden bg-[var(--cor-imagem-fundo)]">
         {product.imagem_url ? (
-          <Image
+          <CatalogImage
             alt={product.nome}
             className="object-cover transition-transform duration-300 group-hover:scale-[1.025]"
+            fallback={imageFallback}
             fill
             loading="lazy"
             sizes="(max-width: 639px) 50vw, (max-width: 1023px) 25vw, (max-width: 1279px) 20vw, 180px"
             src={product.imagem_url}
           />
         ) : (
-          <div className="grid h-full w-full place-items-center bg-[color-mix(in_srgb,var(--cor-imagem-fundo)_86%,var(--cor-acao))] text-[var(--cor-primaria)]">
-            <span className="grid size-14 place-items-center rounded-full border border-[color-mix(in_srgb,var(--cor-borda)_70%,var(--cor-acao))] bg-[color-mix(in_srgb,var(--cor-superficie)_82%,var(--cor-acao))]">
-              <ImageIcon aria-hidden="true" className="size-7 opacity-75" strokeWidth={1.5} />
-            </span>
-            <span className="sr-only">Produto sem imagem</span>
-          </div>
+          imageFallback
         )}
       </div>
 

@@ -63,11 +63,17 @@ export function CategoryManager({ initialCategories }: { initialCategories: Cate
   }
 
   function saveOrder(next: CategoryItem[]) {
+    const previous = categories;
     setCategories(next);
     setDraggedId(null);
     startTransition(async () => {
       const result = await reorderCategoriesAction(next.map((item) => item.id));
-      if (!result.ok) setError(result.error);
+      if (!result.ok) {
+        setCategories(previous);
+        setError(result.error);
+      } else {
+        setError(null);
+      }
     });
   }
 
@@ -95,13 +101,38 @@ export function CategoryManager({ initialCategories }: { initialCategories: Cate
 
   return (
     <div className="grid gap-5">
-      {error ? <Alert title={error} variant="danger" /> : null}
+      {error ? (
+        <div className="relative">
+          <Alert className="pr-14" title={error} variant="danger" />
+          <Button
+            aria-label="Fechar aviso"
+            className="absolute right-1.5 top-1.5"
+            onClick={() => setError(null)}
+            size="icon"
+            variant="ghost"
+          >
+            <X aria-hidden="true" />
+          </Button>
+        </div>
+      ) : null}
       {showGroupingSuggestion ? (
-        <Alert
-          description="Considere agrupar categorias parecidas para deixar a navegação do catálogo mais simples para seus clientes. Você pode continuar criando categorias normalmente."
-          title="Seu catálogo chegou a 16 categorias"
-          variant="warning"
-        />
+        <div className="relative">
+          <Alert
+            className="pr-14"
+            description="Considere agrupar categorias parecidas para deixar a navegação do catálogo mais simples para seus clientes. Você pode continuar criando categorias normalmente."
+            title="Seu catálogo chegou a 16 categorias"
+            variant="warning"
+          />
+          <Button
+            aria-label="Fechar sugestão"
+            className="absolute right-1.5 top-1.5"
+            onClick={() => setShowGroupingSuggestion(false)}
+            size="icon"
+            variant="ghost"
+          >
+            <X aria-hidden="true" />
+          </Button>
+        </div>
       ) : null}
 
       {creating || editing ? (
@@ -129,7 +160,7 @@ export function CategoryManager({ initialCategories }: { initialCategories: Cate
           {categories.map((category, index) => (
             <Card
               className="flex items-center gap-3 p-3 sm:p-4"
-              draggable
+              draggable={!isPending}
               key={category.id}
               onDragEnd={() => setDraggedId(null)}
               onDragOver={(event) => event.preventDefault()}

@@ -107,12 +107,11 @@ export async function reorderCategoriesAction(ids: string[]): Promise<ActionResu
     const { demo, tenant } = await requireTenant();
     if (demo) return { error: "O modo de demonstração não salva a nova ordem.", ok: false };
     const supabase = await createClient();
-    const { data: owned } = await supabase.from("categories").select("id").eq("tenant_id", tenant.id).in("id", parsed.data);
-    if ((owned?.length ?? 0) !== parsed.data.length) return { error: "Uma categoria não pertence à sua loja.", ok: false };
-
-    const results = await Promise.all(parsed.data.map((id, ordem) => supabase.from("categories").update({ ordem }).eq("tenant_id", tenant.id).eq("id", id)));
-    const failed = results.find((result) => result.error);
-    if (failed?.error) throw failed.error;
+    const { error } = await supabase.rpc("reorder_categories", {
+      p_ids: parsed.data,
+      p_tenant_id: tenant.id,
+    });
+    if (error) throw error;
 
     revalidatePath("/painel/categorias");
     revalidatePath(`/loja/${tenant.slug}`);

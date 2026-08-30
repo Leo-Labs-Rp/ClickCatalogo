@@ -35,6 +35,7 @@ export function StorePreview({
       <StoreHeader
         bannerUrl={catalog.banner_url}
         description={catalog.descricao_curta}
+        framed={framed}
         logoUrl={catalog.logo_url}
         storeName={catalog.nome_loja}
         whatsapp={catalog.whatsapp}
@@ -42,6 +43,7 @@ export function StorePreview({
       <StoreCatalog
         categories={categoriesWithProducts}
         enableCart={!framed}
+        framed={framed}
         storeName={catalog.nome_loja}
         whatsapp={catalog.whatsapp}
       />

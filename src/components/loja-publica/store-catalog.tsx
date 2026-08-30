@@ -16,10 +16,12 @@ const SEARCH_THRESHOLD = 12;
 const STICKY_CATEGORY_THRESHOLD = 8;
 const PRODUCTS_PER_PAGE = 20;
 const SEARCH_DEBOUNCE_MS = 300;
+const MAX_CART_QUANTITY = 999;
 
 type StoreCatalogProps = {
   categories: CatalogCategory[];
   enableCart?: boolean;
+  framed?: boolean;
   storeName: string;
   whatsapp: string;
 };
@@ -34,7 +36,7 @@ function normalizeSearch(value: string) {
     .trim();
 }
 
-export function StoreCatalog({ categories, enableCart = true, storeName, whatsapp }: StoreCatalogProps) {
+export function StoreCatalog({ categories, enableCart = true, framed = false, storeName, whatsapp }: StoreCatalogProps) {
   const searchId = useId();
   const totalProducts = useMemo(
     () => categories.reduce((total, category) => total + category.produtos.length, 0),
@@ -90,6 +92,7 @@ export function StoreCatalog({ categories, enableCart = true, storeName, whatsap
     () => cartItems.reduce((total, item) => total + item.product.preco * item.quantity, 0),
     [cartItems],
   );
+  const Content = framed ? "div" : "main";
 
   function loadMore(categoryId: string, currentVisible: number) {
     setVisibleByCategory((current) => ({
@@ -99,6 +102,11 @@ export function StoreCatalog({ categories, enableCart = true, storeName, whatsap
   }
 
   function addToCart(product: CatalogProduct) {
+    const currentQuantity = cart[product.id]?.quantity ?? 0;
+    if (currentQuantity >= MAX_CART_QUANTITY) {
+      setAnnouncement(`Quantidade máxima de ${product.nome} atingida.`);
+      return;
+    }
     setCart((current) => {
       const existing = current[product.id];
       return {
@@ -106,7 +114,7 @@ export function StoreCatalog({ categories, enableCart = true, storeName, whatsap
         [product.id]: { product, quantity: (existing?.quantity ?? 0) + 1 },
       };
     });
-    setAnnouncement(`${product.nome} adicionado ao carrinho.`);
+    setAnnouncement(`${product.nome} adicionado ao carrinho. ${currentQuantity + 1} no total.`);
   }
 
   function decrementCartItem(productId: string) {
@@ -136,7 +144,7 @@ export function StoreCatalog({ categories, enableCart = true, storeName, whatsap
     <>
       <CategoryNav categories={filteredCategories} sticky={stickyCategories} />
 
-      <main className="mx-auto w-full max-w-[var(--content-width)] px-4 py-6 @2xl/store:px-6 @2xl/store:py-8 @5xl/store:px-8">
+      <Content className="mx-auto w-full max-w-[var(--content-width)] px-4 py-6 @2xl/store:px-6 @2xl/store:py-8 @5xl/store:px-8">
         <div className="mb-4 flex items-end justify-between gap-4 @2xl/store:mb-6">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--cor-primaria)]">
@@ -184,12 +192,14 @@ export function StoreCatalog({ categories, enableCart = true, storeName, whatsap
           <EmptyState
             description="A loja está preparando novidades. Volte em breve para conferir."
             icon={PackageOpen}
+            theme
             title="Nenhum produto publicado"
           />
         ) : filteredCategories.length === 0 ? (
           <EmptyState
             description="Tente buscar por outro nome ou termo da descrição."
             icon={SearchX}
+            theme
             title="Nenhum produto encontrado"
           />
         ) : (
@@ -238,7 +248,7 @@ export function StoreCatalog({ categories, enableCart = true, storeName, whatsap
             })}
           </div>
         )}
-      </main>
+      </Content>
 
       {enableCart ? (
         <>

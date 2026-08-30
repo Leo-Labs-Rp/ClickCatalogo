@@ -30,7 +30,8 @@ function textValue(record: Record<string, unknown> | undefined, ...keys: string[
 
 function numberValue(record: Record<string, unknown> | undefined, key: string) {
   const value = record?.[key];
-  return typeof value === "number" ? value : typeof value === "string" && value ? Number(value) : null;
+  const parsed = typeof value === "number" ? value : typeof value === "string" && value ? Number(value) : null;
+  return parsed !== null && Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
 function recordValue(record: Record<string, unknown> | undefined, key: string) {
@@ -68,11 +69,28 @@ function validToken(received: string | null) {
   return receivedBuffer.length === expectedBuffer.length && timingSafeEqual(receivedBuffer, expectedBuffer);
 }
 
-export async function POST(request: Request) {
-  const rateLimitResponse = enforceRateLimit(request, PUBLIC_API_RATE_LIMITS.webhook);
-  if (rateLimitResponse) return rateLimitResponse;
+async function findAuthUserIdByEmail(
+  admin: ReturnType<typeof createAdminClient>,
+  email: string,
+) {
+  const normalizedEmail = email.toLowerCase();
+  const perPage = 1000;
 
+  for (let page = 1; ; page += 1) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage });
+    if (error) throw error;
+
+    const userId = data.users.find((user) => user.email?.toLowerCase() === normalizedEmail)?.id;
+    if (userId) return userId;
+    if (data.users.length < perPage) return null;
+  }
+}
+
+export async function POST(request: Request) {
   if (!validToken(request.headers.get("asaas-access-token"))) return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
+
+  const rateLimitResponse = await enforceRateLimit(request, PUBLIC_API_RATE_LIMITS.webhook);
+  if (rateLimitResponse) return rateLimitResponse;
 
   if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return NextResponse.json({ error: "Webhook temporariamente indisponível." }, { status: 503 });
@@ -97,12 +115,14 @@ export async function POST(request: Request) {
         { status: 409 },
       );
     }
-    await admin.from("asaas_webhook_events").update({ attempts: (existing?.attempts ?? 1) + 1, processing_error: null }).eq("event_id", event.id);
+    const { error: retryUpdateError } = await admin.from("asaas_webhook_events").update({ attempts: (existing?.attempts ?? 1) + 1, processing_error: null }).eq("event_id", event.id);
+    if (retryUpdateError) return NextResponse.json({ error: "Falha ao preparar nova tentativa." }, { status: 500 });
   }
 
   try {
     await processEvent(event);
-    await admin.from("asaas_webhook_events").update({ processed_at: new Date().toISOString(), processing_error: null }).eq("event_id", event.id);
+    const { error: processedUpdateError } = await admin.from("asaas_webhook_events").update({ processed_at: new Date().toISOString(), processing_error: null }).eq("event_id", event.id);
+    if (processedUpdateError) throw processedUpdateError;
     return NextResponse.json({ received: true });
   } catch (error) {
     const message = error instanceof Error ? error.message.slice(0, 500) : "Erro desconhecido";
@@ -125,7 +145,8 @@ async function processEvent(event: WebhookEvent) {
     const intent = await findIntent(event);
     if (intent && !intent.provisioned_tenant_id) {
       const admin = createAdminClient();
-      await admin.from("signup_intents").update({ status: event.event === "CHECKOUT_EXPIRED" ? "expirado" : "cancelado" }).eq("id", intent.id);
+      const { error } = await admin.from("signup_intents").update({ status: event.event === "CHECKOUT_EXPIRED" ? "expirado" : "cancelado" }).eq("id", intent.id);
+      if (error) throw error;
     }
   }
 }
@@ -250,9 +271,7 @@ async function provisionTenant(intent: SignupIntent, event: WebhookEvent) {
     });
     ownerUserId = created.data.user?.id ?? null;
     if (created.error || !ownerUserId) {
-      const { data: listed, error: listError } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-      if (listError) throw listError;
-      ownerUserId = listed.users.find((user) => user.email?.toLowerCase() === intent.email)?.id ?? null;
+      ownerUserId = await findAuthUserIdByEmail(admin, intent.email);
     }
     if (!ownerUserId) throw new Error("Usuário não pôde ser criado no Supabase Auth.");
   }

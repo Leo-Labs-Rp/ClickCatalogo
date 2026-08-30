@@ -8,7 +8,9 @@ function firstHeaderValue(value: string | null) {
 
 export function enforceSameOrigin(request: Request) {
   const origin = request.headers.get("origin");
-  if (!origin) return null;
+  if (!origin) {
+    return NextResponse.json({ error: "Origem da solicitação não informada." }, { status: 403 });
+  }
 
   try {
     const originUrl = new URL(origin);

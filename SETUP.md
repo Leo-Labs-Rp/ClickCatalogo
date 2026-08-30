@@ -49,6 +49,21 @@ Se o `schema.sql` foi executado antes de **29 de agosto de 2026**, rode agora so
 
 Ele adiciona uma função restrita à `service_role` e libera reservas pendentes vencidas mesmo quando o webhook `CHECKOUT_EXPIRED` não chega. O arquivo é idempotente e não recria tabelas, bucket ou policies.
 
+### Banco já criado antes da auditoria pré-lançamento
+
+Se o `schema.sql` já foi executado, rode agora, depois da migration anterior:
+
+`C:\Projeto-Github\ClickCatálogo\supabase\migrations\202608290006_prelaunch_hardening.sql`
+
+Ela adiciona:
+
+- uma única loja por usuário, compatível com o painel atual;
+- consulta administrativa para bloquear uma segunda compra com o mesmo e-mail;
+- reordenação atômica de categorias;
+- rate limiting compartilhado entre todas as Functions da Netlify, armazenando somente HMAC do IP.
+
+Essa migration precisa estar aplicada **antes** do deploy do código desta rodada.
+
 ### O que o schema cria
 
 - `public.tenants` — lojas e seus proprietários;
@@ -57,10 +72,12 @@ Ele adiciona uma função restrita à `service_role` e libera reservas pendentes
 - `public.subscriptions` — assinatura e IDs do Asaas;
 - `public.signup_intents` — cadastro antes da confirmação do pagamento;
 - `public.asaas_webhook_events` — idempotência e auditoria de webhooks;
+- `public.api_rate_limits` — limitação de abuso compartilhada entre instâncias;
 - constraints, índices e gatilhos de `updated_at`;
 - RLS e grants para isolamento multi-tenant;
 - RPCs `get_public_catalog` e `get_public_store_status` para a loja pública;
 - RPC administrativa `expire_stale_signup_intents` para liberar reservas vencidas;
+- RPCs protegidas para verificar conta existente, reordenar categorias e consumir rate limit;
 - bucket público `produtos`, limite de 2 MB e tipos JPEG, PNG e WebP;
 - policies de Storage que restringem escrita ao proprietário do tenant.
 
@@ -74,8 +91,8 @@ Depois do schema, execute no SQL Editor:
 
 Esse arquivo não altera dados. Ele deve listar:
 
-- seis tabelas com RLS ativo;
-- quatro funções esperadas, incluindo a função administrativa de expiração;
+- sete tabelas com RLS ativo;
+- sete funções esperadas, incluindo expiração, reordenação e rate limit;
 - o bucket `produtos` como público;
 - policies das tabelas e do Storage.
 
@@ -136,6 +153,12 @@ Não registre essa API Key no Git. Ela fica somente no campo de senha SMTP do Su
 
 Em **Authentication → Email Templates → Reset password**, mantenha o link de confirmação fornecido pelo Supabase e use um texto curto, sem publicidade. Depois envie uma recuperação real para um Gmail e um Outlook e confirme recebimento, abertura do callback, troca da senha e novo login.
 
+O modelo em português pronto para colar está em:
+
+`C:\Projeto-Github\ClickCatálogo\docs\supabase-email-templates\recovery.html`
+
+O assunto recomendado e o passo a passo ficam no `README.md` da mesma pasta.
+
 Referências oficiais: [SMTP do Resend](https://resend.com/docs/send-with-smtp), [domínios no Resend](https://resend.com/docs/dashboard/domains/introduction) e [SMTP do Supabase Auth](https://supabase.com/docs/guides/auth/auth-smtp).
 
 ## 5. Variáveis locais
@@ -168,7 +191,7 @@ Teste local:
 cd C:\Projeto-Github\ClickCatálogo
 node --version
 npm install
-npm run check
+npm run verify
 npm run dev
 ```
 
@@ -182,7 +205,7 @@ O arquivo abaixo já deixa o build versionado:
 
 Ele configura:
 
-- build: `npm run build`;
+- build: `npm run verify` (qualidade, contraste e build antes de publicar);
 - publish directory: `.next`;
 - Node.js 22;
 - proteção contra incompatibilidade entre deploys ativos.
@@ -195,7 +218,7 @@ A Netlify detecta Next.js e aplica automaticamente o adaptador OpenNext. Não in
 2. Escolha GitHub e selecione `Leo-Labs-Rp/ClickCatalogo`.
 3. Production branch: `master`.
 4. Base directory: raiz do repositório, sem subpasta.
-5. Confirme `npm run build` e `.next` — o `netlify.toml` já fornece os valores.
+5. Confirme `npm run verify` e `.next` — o `netlify.toml` já fornece os valores.
 6. Copie a URL principal exibida pela Netlify, por exemplo `https://nome-do-site.netlify.app`.
 
 ### Variáveis obrigatórias na Netlify
@@ -212,7 +235,9 @@ ASAAS_API_KEY
 ASAAS_WEBHOOK_TOKEN
 ```
 
-No ambiente de teste atual, use `NEXT_PUBLIC_SITE_URL=https://clickcatalogo.netlify.app`, com `https://` e sem barra final.
+No ambiente publicado, use `NEXT_PUBLIC_SITE_URL=https://clickcatalogo.com`, com `https://` e sem barra final. Para uma instalação de teste separada, use a URL própria `*.netlify.app` desse ambiente.
+
+O endereço não fica mais fixo no `netlify.toml`: o valor do painel da Netlify é a fonte única. Quando o domínio final entrar no ar, basta trocar a variável e publicar novamente.
 
 Marque como segredo:
 
@@ -312,6 +337,8 @@ Depois entre em `/painel` com o e-mail e a senha desse usuário. Categorias, pro
 8. Teste pedido individual e carrinho consolidado pelo WhatsApp.
 9. No Sandbox, escolha uma assinatura descartável e valide o cancelamento self-service.
 
+O produto atual aceita **uma loja por e-mail/usuário**. Uma segunda tentativa retorna orientação para entrar no painel ou recuperar a senha, antes de abrir outro checkout.
+
 ## 10. Trocar para `clickcatalogo.com`
 
 Quando o domínio for vinculado à Netlify:
@@ -340,9 +367,11 @@ Quando o domínio for vinculado à Netlify:
 ### Obrigatório antes do primeiro cliente real
 
 - executar e verificar o schema no novo Supabase;
+- executar `supabase/migrations/202608290006_prelaunch_hardening.sql` em bancos criados antes desta auditoria;
 - trocar todas as variáveis do ambiente antigo pelas novas;
 - publicar o estado local atual no GitHub — há funcionalidades ainda não commitadas;
 - configurar SMTP próprio e testar recuperação de senha;
+- colar e testar o template em português de recuperação;
 - configurar webhook na conta Asaas de Produção;
 - realizar uma cobrança real controlada e um cancelamento controlado;
 - revisar logs da Netlify, Supabase e Asaas após o teste.
@@ -357,6 +386,8 @@ Quando o domínio for vinculado à Netlify:
 
 - schema completo: `C:\Projeto-Github\ClickCatálogo\supabase\schema.sql`;
 - migration complementar de slugs expirados: `C:\Projeto-Github\ClickCatálogo\supabase\migrations\202608280005_expire_stale_signup_intents.sql`;
+- hardening pré-lançamento: `C:\Projeto-Github\ClickCatálogo\supabase\migrations\202608290006_prelaunch_hardening.sql`;
+- template de recuperação: `C:\Projeto-Github\ClickCatálogo\docs\supabase-email-templates\recovery.html`;
 - verificação do banco: `C:\Projeto-Github\ClickCatálogo\supabase\verify-setup.sql`;
 - exemplo de variáveis: `C:\Projeto-Github\ClickCatálogo\.env.example`;
 - valores locais reais: `C:\Projeto-Github\ClickCatálogo\.env.local`;

@@ -21,6 +21,27 @@ export type SignupIntentStatus = "pendente" | "pago" | "expirado" | "cancelado";
 export type Database = {
   public: {
     Tables: {
+      api_rate_limits: {
+        Row: {
+          key_hash: string;
+          request_count: number;
+          reset_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          key_hash: string;
+          request_count?: number;
+          reset_at: string;
+          updated_at?: string;
+        };
+        Update: {
+          key_hash?: string;
+          request_count?: number;
+          reset_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       asaas_webhook_events: {
         Row: {
           attempts: number;
@@ -276,6 +297,14 @@ export type Database = {
     };
     Views: { [_ in never]: never };
     Functions: {
+      consume_api_rate_limit: {
+        Args: { p_key_hash: string; p_limit: number; p_window_seconds: number };
+        Returns: { allowed: boolean; remaining: number; reset_at: string; retry_after: number }[];
+      };
+      email_has_tenant: {
+        Args: { p_email: string };
+        Returns: boolean;
+      };
       expire_stale_signup_intents: {
         Args: Record<PropertyKey, never>;
         Returns: number;
@@ -287,6 +316,10 @@ export type Database = {
       get_public_store_status: {
         Args: { p_slug: string };
         Returns: string | null;
+      };
+      reorder_categories: {
+        Args: { p_ids: string[]; p_tenant_id: string };
+        Returns: number;
       };
     };
     Enums: { [_ in never]: never };

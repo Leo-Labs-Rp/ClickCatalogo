@@ -60,7 +60,7 @@ export function PanelShell({ children, demo = false, slug, status, storeName, us
           <p className="truncate text-sm font-semibold">{storeName}</p>
           <p className="truncate text-xs text-[var(--app-foreground-muted)]">{userEmail}</p>
           <div className="mt-3 grid grid-cols-2 gap-2">
-            <Link className={buttonVariants({ size: "sm", variant: "secondary" })} href={`/loja/${slug}`} target="_blank"><ExternalLink aria-hidden="true" className="size-4" />Ver loja</Link>
+            <Link className={buttonVariants({ size: "sm", variant: "secondary" })} href={`/loja/${slug}`} rel="noreferrer" target="_blank"><ExternalLink aria-hidden="true" className="size-4" />Ver loja</Link>
             <form action={signOutAction}><Button className="w-full" size="sm" type="submit" variant="ghost"><LogOut aria-hidden="true" />Sair</Button></form>
           </div>
         </div>
